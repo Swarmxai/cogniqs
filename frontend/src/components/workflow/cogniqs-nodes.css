@@ -1,0 +1,428 @@
+/* Cogniqs workflow node — distinct from mindscrybe */
+
+.cq-flow .cq-node {
+  position: relative;
+  font-family: var(--font-sans);
+  min-width: 200px;
+  max-width: 260px;
+}
+
+.cq-flow .cq-node--trigger {
+  min-width: 220px;
+}
+
+.cq-flow .cq-node--sub {
+  min-width: 0;
+  max-width: none;
+}
+
+/* ── Card shell ─────────────────────────────────────────────────────────── */
+.cq-flow .cq-node-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.cq-flow .cq-node:hover .cq-node-card {
+  border-color: var(--border-strong);
+}
+
+.cq-flow .cq-node--selected .cq-node-card {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring), var(--shadow-card);
+}
+
+.cq-flow .cq-node--disabled .cq-node-card {
+  opacity: 0.5;
+  filter: grayscale(0.35);
+}
+
+.cq-flow .cq-node--trigger .cq-node-card {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--primary-soft) 100%);
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+}
+
+/* Accent bar */
+.cq-flow .cq-node-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--node-accent, var(--primary));
+  border-radius: 14px 0 0 14px;
+}
+
+/* ── Body ───────────────────────────────────────────────────────────────── */
+.cq-flow .cq-node-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 10px 16px;
+}
+
+.cq-flow .cq-node-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--grad-brand);
+  box-shadow: 0 2px 8px var(--glow);
+}
+
+.cq-flow .cq-node--trigger .cq-node-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.cq-flow .cq-node-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.cq-flow .cq-node-category {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--node-accent, var(--primary));
+  margin-bottom: 2px;
+}
+
+.cq-flow .cq-node-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cq-flow .cq-node-subtitle {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Actions (hover) ────────────────────────────────────────────────────── */
+.cq-flow .cq-node-actions {
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 5;
+}
+
+.cq-flow .cq-node:hover .cq-node-actions,
+.cq-flow .cq-node--selected .cq-node-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.cq-flow .cq-node-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.cq-flow .cq-node-action:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.cq-flow .cq-node-action--danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.cq-flow .cq-node-action--off {
+  color: #f59e0b;
+}
+
+/* ── Footer / status ────────────────────────────────────────────────────── */
+.cq-flow .cq-node-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 8px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+
+.cq-flow .cq-node-footer--trigger {
+  justify-content: flex-end;
+  padding: 8px 12px;
+}
+
+.cq-flow .cq-node-run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--grad-brand);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+}
+
+.cq-flow .cq-node-run-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.cq-flow .cq-node-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cq-flow .cq-node-status-dot--success { background: #22c55e; }
+.cq-flow .cq-node-status-dot--error { background: #ef4444; }
+.cq-flow .cq-node-status-dot--running { background: var(--primary); animation: cq-pulse 1s ease infinite; }
+.cq-flow .cq-node-status-dot--skipped { background: var(--ink-faint); }
+
+@keyframes cq-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.cq-flow .cq-node-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.cq-flow .cq-node-warning {
+  flex-shrink: 0;
+  color: #f59e0b;
+  margin-left: auto;
+}
+
+/* ── Sub-node chip (AI outputs) ─────────────────────────────────────────── */
+.cq-flow .cq-node-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cq-flow .cq-node-chip-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-card);
+  min-width: 100px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cq-flow .cq-node--selected .cq-node-chip-card {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.cq-flow .cq-node-chip-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cq-flow .cq-node-chip-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cq-flow .cq-node-chip-status {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  border: 2px solid var(--surface);
+}
+
+.cq-flow .cq-node-chip-status--success { background: #22c55e; }
+.cq-flow .cq-node-chip-status--error { background: #ef4444; }
+
+/* ── AI input slots ─────────────────────────────────────────────────────── */
+.cq-flow .cq-node-ai-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0 4px;
+  justify-content: center;
+}
+
+.cq-flow .cq-node-ai-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cq-flow .cq-node-ai-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in srgb, var(--slot-color, var(--primary)) 50%, var(--border));
+  background: color-mix(in srgb, var(--slot-color, var(--primary)) 8%, var(--surface));
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 0.12s, border-style 0.12s;
+}
+
+.cq-flow .cq-node-ai-pill:hover {
+  border-style: solid;
+  background: color-mix(in srgb, var(--slot-color, var(--primary)) 14%, var(--surface));
+  color: var(--ink);
+}
+
+.cq-flow .cq-node-ai-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--slot-color, var(--primary));
+}
+
+/* ── Add next ───────────────────────────────────────────────────────────── */
+.cq-flow .cq-node-add {
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: var(--shadow-card);
+  transition: opacity 0.15s, transform 0.15s, background 0.12s;
+  z-index: 4;
+}
+
+.cq-flow .cq-node:hover .cq-node-add,
+.cq-flow .cq-node--selected .cq-node-add {
+  opacity: 1;
+}
+
+.cq-flow .cq-node-add:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: translateY(-50%) scale(1.08);
+}
+
+/* ── Handles ────────────────────────────────────────────────────────────── */
+.cq-flow .cq-handle {
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid var(--surface) !important;
+  background: var(--primary) !important;
+  box-shadow: 0 0 0 1px var(--border-strong);
+  transition: transform 0.12s;
+}
+
+.cq-flow .cq-handle:hover {
+  transform: scale(1.25);
+}
+
+.cq-flow .cq-handle--main-in,
+.cq-flow .cq-handle--main-out {
+  background: var(--primary) !important;
+}
+
+.cq-flow .cq-handle--ai {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--handle-color, var(--primary)) !important;
+}
+
+.cq-flow .cq-handle--ai-out {
+  top: -5px !important;
+}
+
+.cq-flow .cq-handle--ai-in {
+  bottom: -5px !important;
+}

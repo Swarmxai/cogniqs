@@ -8,8 +8,8 @@ export const AI_TYPES = [
   'ai_embedding', 'ai_embeddings', 'ai_vectorStore', 'ai_retriever',
 ]
 
-export const MAIN_EDGE = { stroke: '#94a3b8', strokeWidth: 2 }
-export const AI_EDGE = { stroke: '#10a37f', strokeWidth: 2, strokeDasharray: '6 3' }
+export const MAIN_EDGE = { stroke: '#6366f1', strokeWidth: 2 }
+export const AI_EDGE = { stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 4' }
 
 export function getAiType(handleId) {
   if (!handleId) return null

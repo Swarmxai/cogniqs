@@ -40,6 +40,7 @@ import {
   serializeWorkflow,
 } from '../components/workflow/workflowEditorUtils'
 import '../components/workflow/mindscrybe-editor.css'
+import '../components/workflow/cogniqs-nodes.css'
 
 const nodeTypes = { workflowNode: WorkflowNode, stickyNote: StickyNoteNode }
 
