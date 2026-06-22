@@ -1,0 +1,302 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+
+  --color-surface: #f5f6fb;
+  --color-surface-elevated: #ffffff;
+  --color-ink: #161823;
+  --color-ink-muted: #6b7080;
+}
+
+/* ───────────────────────── Design tokens ───────────────────────── */
+/* Light theme — clean royal indigo + blue on cool porcelain */
+:root {
+  --bg: #f6f8fd;
+  --bg-soft: #edf1fa;
+  --surface: #ffffff;
+  --surface-2: #f4f6fd;
+  --surface-3: #e9eef9;
+  --border: #e3e8f3;
+  --border-strong: #ccd5ea;
+
+  --ink: #0f1729;
+  --ink-muted: #545d76;
+  --ink-faint: #8e98b3;
+
+  --primary: #4f46e5;
+  --primary-strong: #4338ca;
+  --primary-soft: #e6e7ff;
+  --accent: #6366f1;
+  --neon: #4f46e5;
+  --neon-2: #2563eb;
+
+  --ring: rgba(79, 70, 229, 0.30);
+  --glow: rgba(79, 70, 229, 0.18);
+  --shadow-card: 0 1px 2px rgba(15, 23, 41, 0.04), 0 8px 24px rgba(15, 23, 41, 0.07);
+  --shadow-pop: 0 14px 42px rgba(15, 23, 41, 0.16);
+
+  --grad-brand: linear-gradient(135deg, #2563eb 0%, #4f46e5 55%, #6366f1 100%);
+  --grad-hero: linear-gradient(135deg, #1d4ed8 0%, #4f46e5 50%, #7c3aed 100%);
+}
+
+/* Dark theme — electric neon (cyan → violet) on near-black */
+.dark,
+body.dark {
+  --bg: #07080d;
+  --bg-soft: #0b0d15;
+  --surface: #0f111a;
+  --surface-2: #141726;
+  --surface-3: #1a1e30;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --ink: #eef0f7;
+  --ink-muted: #9aa0b4;
+  --ink-faint: #636a82;
+
+  --primary: #7c6cff;
+  --primary-strong: #9486ff;
+  --primary-soft: rgba(124, 108, 255, 0.14);
+  --accent: #22e0d6;
+  --neon: #00e5ff;
+  --neon-2: #a855f7;
+
+  --ring: rgba(0, 229, 255, 0.45);
+  --glow: rgba(0, 229, 255, 0.28);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 36px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 18px 60px rgba(0, 0, 0, 0.7);
+
+  --grad-brand: linear-gradient(135deg, #00e5ff 0%, #7c6cff 55%, #a855f7 100%);
+  --grad-hero: linear-gradient(135deg, #00e5ff 0%, #7c6cff 50%, #a855f7 100%);
+
+  /* keep legacy aliases working */
+  --color-surface: var(--bg);
+  --color-surface-elevated: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Ambient glow behind the light app — soft indigo/blue wash */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(56rem 38rem at 12% -10%, rgba(79, 70, 229, 0.09), transparent 60%),
+    radial-gradient(48rem 36rem at 94% 0%, rgba(37, 99, 235, 0.09), transparent 60%),
+    radial-gradient(60rem 50rem at 50% 120%, rgba(124, 58, 237, 0.06), transparent 60%);
+}
+
+/* Ambient aurora glow behind the dark app — premium feel */
+body.dark::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(58rem 40rem at 14% -8%, rgba(0, 229, 255, 0.10), transparent 60%),
+    radial-gradient(50rem 38rem at 92% 0%, rgba(168, 85, 247, 0.12), transparent 60%),
+    radial-gradient(60rem 50rem at 50% 120%, rgba(124, 108, 255, 0.08), transparent 60%);
+}
+
+#root { position: relative; z-index: 1; }
+
+/* ───────────────────────── Scrollbar ───────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); background-clip: padding-box; }
+
+/* ───────────────────────── Reusable components ───────────────────────── */
+/* Declared inside @layer components so Tailwind utilities (e.g. pl-10) win. */
+@layer components {
+.cq-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.cq-card-hover {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.cq-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  box-shadow: var(--shadow-pop), 0 0 0 1px var(--glow);
+}
+
+.cq-surface-2 { background: var(--surface-2); }
+
+.cq-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.75rem;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease, opacity 0.18s;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.cq-btn:active { transform: translateY(1px); }
+.cq-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.cq-btn-primary {
+  color: #fff;
+  background-image: var(--grad-brand);
+  box-shadow: 0 6px 18px var(--glow);
+}
+.cq-btn-primary:hover { box-shadow: 0 10px 28px var(--glow), 0 0 0 1px var(--glow); filter: brightness(1.06); }
+
+.dark .cq-btn-primary { color: #050608; text-shadow: none; }
+
+.cq-btn-ghost {
+  color: var(--ink-muted);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+.cq-btn-ghost:hover { color: var(--ink); border-color: var(--border-strong); background: var(--surface-3); }
+
+.cq-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.cq-input::placeholder { color: var(--ink-faint); }
+.cq-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+  background: var(--surface);
+}
+
+.cq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.gradient-text {
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.neon-ring { box-shadow: 0 0 0 1px var(--glow), 0 0 24px var(--glow); }
+
+/* faint dotted grid backdrop usable on hero panels */
+.cq-grid-bg {
+  background-image: radial-gradient(var(--border-strong) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+}
+
+/* muted helpers tied to tokens (so they adapt per theme) */
+.text-muted { color: var(--ink-muted); }
+.text-faint { color: var(--ink-faint); }
+.border-token { border-color: var(--border); }
+
+/* ───────────────────────── Empty-canvas "add first step" ───────────────────────── */
+.cq-add-first {
+  min-width: 280px;
+  min-height: 160px;
+  border: 2px dashed var(--border-strong);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.cq-add-first:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.cq-add-icon { color: var(--ink-faint); opacity: 0.85; transition: color 0.18s ease, opacity 0.18s ease; }
+.cq-add-first:hover .cq-add-icon { color: var(--primary); opacity: 1; }
+.cq-add-title { color: var(--ink-muted); font-weight: 500; transition: color 0.18s ease; }
+.cq-add-first:hover .cq-add-title { color: var(--ink); }
+.cq-add-sub { color: var(--ink-faint); font-size: 0.75rem; transition: color 0.18s ease; }
+.cq-add-first:hover .cq-add-sub { color: var(--ink-muted); }
+
+/* ───────────────────────── React Flow overrides ───────────────────────── */
+.react-flow__background { background-color: transparent !important; }
+
+.react-flow__minimap {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.cq-node { transition: box-shadow 0.2s, transform 0.15s; }
+.cq-node:hover { transform: translateY(-1px); }
+.cq-node.selected {
+  box-shadow: 0 0 0 2px var(--primary), 0 8px 28px var(--glow);
+}
+
+/* ───────────────────────── Animations ───────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.running-pulse { animation: pulse-ring 1.5s ease-in-out infinite; }
+
+@keyframes glow-breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+.animate-glow { animation: glow-breathe 3.5s ease-in-out infinite; }

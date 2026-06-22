@@ -1,0 +1,202 @@
+defaults:
+  request_timeout: 60
+  max_node_executions: 500
+
+nodes:
+  manual_trigger:
+    import_path: app.nodes.triggers.manual_trigger.ManualTriggerNode
+    config: {}
+
+  webhook_trigger:
+    import_path: app.nodes.triggers.webhook_trigger.WebhookTriggerNode
+    config: {}
+
+  chat_trigger:
+    import_path: app.nodes.triggers.chat_trigger.ChatTriggerNode
+    config: {}
+
+  schedule_trigger:
+    import_path: app.nodes.triggers.schedule_trigger.ScheduleTriggerNode
+    config: {}
+
+  llm_openai:
+    import_path: app.nodes.llm.llm_openai.OpenAINode
+    config: {}
+
+  llm_anthropic:
+    import_path: app.nodes.llm.llm_anthropic.AnthropicNode
+    config: {}
+
+  llm_gemini:
+    import_path: app.nodes.llm.llm_gemini.GeminiNode
+    config: {}
+
+  llm_ollama:
+    import_path: app.nodes.llm.llm_ollama.OllamaNode
+    config: {}
+
+  llm_groq:
+    import_path: app.nodes.llm.llm_groq.GroqNode
+    config: {}
+
+  llm_azure:
+    import_path: app.nodes.llm.llm_extra.AzureOpenAINode
+    config: {}
+
+  llm_mistral:
+    import_path: app.nodes.llm.llm_extra.MistralNode
+    config: {}
+
+  llm_deepseek:
+    import_path: app.nodes.llm.llm_extra.DeepSeekNode
+    config: {}
+
+  ai_agent:
+    import_path: app.nodes.ai.ai_agent.AIAgentNode
+    config: {}
+
+  basic_llm_chain:
+    import_path: app.nodes.ai.basic_llm_chain.BasicLLMChainNode
+    config: {}
+
+  rag_document_qa:
+    import_path: app.nodes.ai.rag_document_qa.RAGDocumentQANode
+    config: {}
+
+  document_ingest:
+    import_path: app.nodes.ai.document_ingest.DocumentIngestNode
+    config: {}
+
+  memory_buffer:
+    import_path: app.nodes.ai.memory_buffer.MemoryBufferNode
+    config: {}
+
+  http_tool:
+    import_path: app.nodes.ai.http_tool.HTTPToolNode
+    config: {}
+
+  if_node:
+    import_path: app.nodes.logic.if_node.IfNode
+    config: {}
+
+  code_node:
+    import_path: app.nodes.logic.code_node.CodeNode
+    config: {}
+
+  switch_node:
+    import_path: app.nodes.logic.logic_extra.SwitchNode
+    config: {}
+
+  merge_node:
+    import_path: app.nodes.logic.logic_extra.MergeNode
+    config: {}
+
+  wait_node:
+    import_path: app.nodes.logic.logic_extra.WaitNode
+    config: {}
+
+  noop_node:
+    import_path: app.nodes.logic.logic_extra.NoOpNode
+    config: {}
+
+  stop_and_error_node:
+    import_path: app.nodes.logic.logic_extra.StopAndErrorNode
+    config: {}
+
+  set_node:
+    import_path: app.nodes.data.set_node.SetNode
+    config: {}
+
+  filter_node:
+    import_path: app.nodes.data.data_transform.FilterNode
+    config: {}
+
+  sort_node:
+    import_path: app.nodes.data.data_transform.SortNode
+    config: {}
+
+  limit_node:
+    import_path: app.nodes.data.data_transform.LimitNode
+    config: {}
+
+  aggregate_node:
+    import_path: app.nodes.data.data_transform.AggregateNode
+    config: {}
+
+  remove_duplicates_node:
+    import_path: app.nodes.data.data_transform.RemoveDuplicatesNode
+    config: {}
+
+  http_request:
+    import_path: app.nodes.integrations.http_request.HTTPRequestNode
+    config: {}
+
+  slack_send_message:
+    import_path: app.nodes.integrations.integrations_extra.SlackSendMessageNode
+    config: {}
+
+  telegram_send_message:
+    import_path: app.nodes.integrations.integrations_extra.TelegramSendMessageNode
+    config: {}
+
+  email_send:
+    import_path: app.nodes.integrations.integrations_extra.EmailSendNode
+    config: {}
+
+  database_query:
+    import_path: app.nodes.integrations.integrations_extra.DatabaseQueryNode
+    config: {}
+
+  execute_workflow:
+    import_path: app.nodes.integrations.integrations_extra.ExecuteWorkflowNode
+    config: {}
+
+  embeddings_openai:
+    import_path: app.nodes.embeddings.embeddings_nodes.OpenAIEmbeddingsNode
+    config: {}
+
+  embeddings_ollama:
+    import_path: app.nodes.embeddings.embeddings_nodes.OllamaEmbeddingsNode
+    config: {}
+
+  # ── ML / AutoGluon ──────────────────────────────────────────────
+  dataset_config:
+    import_path: app.nodes.datasets.dataset_config.DatasetConfigNode
+    config: {}
+
+  model_training:
+    import_path: app.nodes.training.model_training.ModelTrainingNode
+    config:
+      node_timeout: 7200
+
+  model_inference:
+    import_path: app.nodes.inference.model_inference.ModelInferenceNode
+    config: {}
+
+  model_deployment:
+    import_path: app.nodes.deployment.model_deployment.ModelDeploymentNode
+    config: {}
+
+  eda_report:
+    import_path: app.nodes.analysis.eda_report.EDAReportNode
+    config: {}
+
+  data_preprocessing:
+    import_path: app.nodes.analysis.data_preprocessing.DataPreprocessingNode
+    config: {}
+
+  clustering_suite:
+    import_path: app.nodes.analysis.analytics_advanced.ClusteringNode
+    config: {}
+
+  anomaly_detection:
+    import_path: app.nodes.analysis.analytics_advanced.AnomalyDetectionNode
+    config: {}
+
+  time_series_forecast:
+    import_path: app.nodes.analysis.analytics_advanced.TimeSeriesForecastNode
+    config: {}
+
+  model_evaluation:
+    import_path: app.nodes.analysis.analytics_advanced.ModelEvaluationNode
+    config: {}

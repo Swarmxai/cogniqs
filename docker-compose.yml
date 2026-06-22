@@ -1,0 +1,31 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=true
+      - DATABASE_URL=sqlite+aiosqlite:///./cogniqs.db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - cogniqs_data:/app/chroma_data
+    depends_on:
+      - redis
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://backend:8000
+
+volumes:
+  cogniqs_data:

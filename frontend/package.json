@@ -1,0 +1,31 @@
+{
+  "name": "cogniqs-frontend",
+  "private": true,
+  "version": "0.0.4",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.11.0",
+    "lucide-react": "^1.20.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.18.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "@testing-library/react": "^16.3.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.3.0",
+    "jsdom": "^26.1.0",
+    "tailwindcss": "^4.1.8",
+    "vite": "^8.0.12",
+    "vitest": "^3.2.4"
+  }
+}

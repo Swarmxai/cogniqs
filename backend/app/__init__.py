@@ -1,0 +1,1 @@
+"""Cogniqs backend application package."""
