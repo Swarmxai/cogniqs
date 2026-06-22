@@ -27,3 +27,4 @@ __pycache__/
 *.log
 backend/data/
 chroma_data/
+*.db
