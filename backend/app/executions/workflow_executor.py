@@ -13,7 +13,10 @@ from app.engine.runtime_context import NodeRunData, RuntimeContext
 
 logger = logging.getLogger(__name__)
 
-AI_HANDLES = ("ai_languageModel", "ai_tool", "ai_memory", "ai_embeddings", "ai_outputParser")
+AI_HANDLES = (
+    "ai_languageModel", "ai_tool", "ai_memory", "ai_embeddings", "ai_outputParser",
+    "ai_vectorStore", "ai_retriever",
+)
 
 
 class WorkflowExecutor:
@@ -24,11 +27,15 @@ class WorkflowExecutor:
         context: RuntimeContext,
         *,
         node_timeout: int = 300,
+        credential_cache: dict[str, dict[str, Any]] | None = None,
+        database_cache: dict[str, str] | None = None,
     ):
         self.nodes = {n["id"]: n for n in nodes}
         self.connections = connections
         self.context = context
         self.node_timeout = node_timeout
+        self.credential_cache = credential_cache or {}
+        self.database_cache = database_cache or {}
 
     async def execute(self) -> dict[str, Any]:
         adj, in_degree = self._build_graph()
@@ -64,6 +71,14 @@ class WorkflowExecutor:
             self.context.reset_ai_bindings()
             self._bind_ai_connections(node_id)
 
+            exec_context = self.context.to_dict()
+            cred_id = resolved.get("_credentialId")
+            if cred_id is not None and str(cred_id) in self.credential_cache:
+                exec_context["credentials"] = self.credential_cache[str(cred_id)]
+            db_id = resolved.get("database_id")
+            if db_id is not None and str(db_id) in self.database_cache:
+                exec_context["_database_urls"] = {str(db_id): self.database_cache[str(db_id)]}
+
             node_cls = get_node_class(node_type)
             if not node_cls:
                 run_data.mark_error(f"Unknown node type: {node_type}")
@@ -74,7 +89,7 @@ class WorkflowExecutor:
             run_data.input_data = resolved
             try:
                 output = await asyncio.wait_for(
-                    node_cls().execute(node_id, resolved, self.context.to_dict()),
+                    node_cls().execute(node_id, resolved, exec_context),
                     timeout=self.node_timeout,
                 )
                 run_data.mark_success(output)
@@ -92,6 +107,53 @@ class WorkflowExecutor:
                 return {"status": "error", "error": str(exc), "errorNodeId": node_id, "nodeOutputs": results}
 
         return {"status": "success", "nodeOutputs": results, "finalOutput": self.context.json}
+
+    async def execute_single_node(self, node_id: str) -> dict[str, Any]:
+        """Run one node in isolation (for editor 'test step')."""
+        node_def = self.nodes.get(node_id)
+        if not node_def:
+            return {"status": "error", "error": f"Node '{node_id}' not found", "nodeOutputs": {}}
+        if self._is_disabled(node_def):
+            return {"status": "error", "error": "Node is disabled", "nodeOutputs": {}}
+
+        node_type = node_def.get("type") or node_def.get("data", {}).get("type", "")
+        run_data = NodeRunData(node_id=node_id, node_type=node_type)
+        self.context.node_run_data[node_id] = run_data
+
+        parameters = node_def.get("data", {}).get("parameters", node_def.get("parameters", {}))
+        resolved = evaluate_expressions(parameters, self.context.to_dict())
+        self.context.reset_ai_bindings()
+        self._bind_ai_connections(node_id)
+
+        exec_context = self.context.to_dict()
+        cred_id = resolved.get("_credentialId")
+        if cred_id is not None and str(cred_id) in self.credential_cache:
+            exec_context["credentials"] = self.credential_cache[str(cred_id)]
+        db_id = resolved.get("database_id")
+        if db_id is not None and str(db_id) in self.database_cache:
+            exec_context["_database_urls"] = {str(db_id): self.database_cache[str(db_id)]}
+
+        node_cls = get_node_class(node_type)
+        if not node_cls:
+            run_data.mark_error(f"Unknown node type: {node_type}")
+            return {"status": "error", "error": run_data.error, "nodeOutputs": {node_id: run_data.to_dict()}}
+
+        run_data.mark_started()
+        run_data.input_data = resolved
+        try:
+            output = await asyncio.wait_for(
+                node_cls().execute(node_id, resolved, exec_context),
+                timeout=self.node_timeout,
+            )
+            run_data.mark_success(output)
+            self.context.set_node_output(node_id, output)
+            return {"status": "success", "nodeOutputs": {node_id: run_data.to_dict()}, "finalOutput": output}
+        except asyncio.TimeoutError:
+            run_data.mark_error(f"Timed out after {self.node_timeout}s")
+            return {"status": "error", "error": run_data.error, "nodeOutputs": {node_id: run_data.to_dict()}}
+        except Exception as exc:
+            run_data.mark_error(str(exc))
+            return {"status": "error", "error": str(exc), "nodeOutputs": {node_id: run_data.to_dict()}}
 
     @staticmethod
     def _is_disabled(node_def: dict[str, Any]) -> bool:
@@ -138,6 +200,12 @@ class WorkflowExecutor:
                     self.context.ai_tools.append(tool)
             elif "ai_embeddings" in th:
                 self.context.ai_embeddings = src_out.get("embeddings") or src_out
+            elif "ai_vectorStore" in th:
+                self.context.ai_vector_store = src_out.get("vectorStore") or src_out
+            elif "ai_retriever" in th:
+                self.context.ai_retriever = src_out.get("retriever") or src_out
+            elif "ai_outputParser" in th:
+                self.context.ai_output_parser = src_out.get("outputParser") or src_out
 
     def _handle_branching(self, node_id: str, output: dict) -> set[str]:
         skipped: set[str] = set()

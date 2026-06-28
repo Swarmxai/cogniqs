@@ -13,6 +13,7 @@ export default function ExecutePanel({ onExecute, onClose, onChat, showChat }) {
   const [message, setMessage] = useState('Hello!')
   const [document, setDocument] = useState('')
   const [collection, setCollection] = useState('default')
+  const [approved, setApproved] = useState(true)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
 
@@ -66,9 +67,14 @@ export default function ExecutePanel({ onExecute, onClose, onChat, showChat }) {
             className="w-full px-3 py-2 text-sm rounded-lg border border-stone-200 dark:border-stone-700 bg-transparent resize-none"
           />
         </div>
+        <div className="flex items-center gap-2 text-sm">
+          <input id="exec-approved" type="checkbox" checked={approved} onChange={(e) => setApproved(e.target.checked)} />
+          <label htmlFor="exec-approved">Human approval granted</label>
+        </div>
         <div className="flex gap-2">
           <button
-            onClick={() => run({ message, session_id: 'test', collection_name: collection, document })}
+            data-testid="workflow-execute-run"
+            onClick={() => run({ message, session_id: 'test', collection_name: collection, document, approved })}
             disabled={loading}
             className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium disabled:opacity-50"
           >

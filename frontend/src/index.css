@@ -300,3 +300,221 @@ body.dark::before {
   50% { opacity: 1; }
 }
 .animate-glow { animation: glow-breathe 3.5s ease-in-out infinite; }
+
+/* ───────────────────────── Login page ───────────────────────── */
+.cq-login-page {
+  min-height: 100vh;
+  display: flex;
+  background: var(--bg);
+}
+
+.cq-login-brand {
+  position: relative;
+  display: none;
+  width: 50%;
+  overflow: hidden;
+  padding: 3rem;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #fff;
+  background: var(--grad-hero);
+}
+
+@media (min-width: 1024px) {
+  .cq-login-brand { display: flex; }
+}
+
+.cq-login-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(255,255,255,0.18), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 90% 80%, rgba(255,255,255,0.12), transparent 50%);
+  pointer-events: none;
+}
+
+.cq-login-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  background-image: radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
+}
+
+.cq-login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+  animation: glow-breathe 4s ease-in-out infinite;
+}
+
+.cq-login-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(8px);
+}
+
+.cq-login-feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cq-login-form-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  position: relative;
+}
+
+.cq-login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem;
+  border-radius: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-pop);
+  animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cq-login-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.cq-login-tab {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: 9px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink-muted);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.cq-login-tab--active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(15, 23, 41, 0.08);
+}
+
+.cq-login-field {
+  margin-bottom: 1rem;
+}
+
+.cq-login-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin-bottom: 0.35rem;
+}
+
+.cq-login-input-wrap {
+  position: relative;
+}
+
+.cq-login-input-wrap svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.cq-login-input-wrap input {
+  width: 100%;
+  padding: 0.65rem 0.9rem 0.65rem 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 0.9rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cq-login-input-wrap input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+  background: var(--surface);
+}
+
+.cq-login-input-wrap--password input {
+  padding-right: 2.75rem;
+}
+
+.cq-login-eye {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+}
+
+.cq-login-eye:hover { color: var(--ink-muted); }
+
+.cq-login-demo {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.cq-login-demo strong { color: var(--primary-strong); }
+
+.cq-login-theme-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  padding: 0.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: flex;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cq-login-theme-btn:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+

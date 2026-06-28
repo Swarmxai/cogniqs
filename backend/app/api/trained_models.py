@@ -105,6 +105,16 @@ async def predict_public(model_id: int, body: PredictRequest, api_key: str, db: 
     return {"predictions": predictions, "count": len(predictions)}
 
 
+@router.post("/{model_id}/deploy")
+async def deploy_model(model_id: int, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
+    model = await _get_owned(db, model_id, user.id)
+    if not model.api_key:
+        model.api_key = secrets.token_urlsafe(32)
+    model.status = "deployed"
+    await db.flush()
+    return model.to_dict()
+
+
 @router.post("/{model_id}/rotate-api-key")
 async def rotate_api_key(model_id: int, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
     model = await _get_owned(db, model_id, user.id)

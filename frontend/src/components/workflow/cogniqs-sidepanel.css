@@ -1,0 +1,499 @@
+/* Cogniqs right-side panels — node selector, execution history */
+
+.cq-flow .cq-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 41, 0.25);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
+.cq-flow .cq-panel {
+  width: 400px;
+  max-width: 100vw;
+  height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 40px rgba(15, 23, 41, 0.12);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.cq-flow .cq-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 20px 20px 12px;
+  flex-shrink: 0;
+}
+
+.cq-flow .cq-panel-back {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.cq-flow .cq-panel-back:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.cq-flow .cq-panel-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cq-flow .cq-panel-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.cq-flow .cq-panel-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+.cq-flow .cq-panel-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.cq-flow .cq-panel-close:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* ── Search ─────────────────────────────────────────────────────────────── */
+.cq-flow .cq-panel-search {
+  position: relative;
+  padding: 0 20px 16px;
+  flex-shrink: 0;
+}
+
+.cq-flow .cq-panel-search-icon {
+  position: absolute;
+  left: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.cq-flow .cq-panel-search input {
+  width: 100%;
+  padding: 10px 12px 10px 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cq-flow .cq-panel-search input::placeholder {
+  color: var(--ink-faint);
+}
+
+.cq-flow .cq-panel-search input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* ── Scroll body ────────────────────────────────────────────────────────── */
+.cq-flow .cq-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 20px 24px;
+}
+
+.cq-flow .cq-panel-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.cq-flow .cq-panel-body::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 10px;
+}
+
+.cq-flow .cq-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cq-flow .cq-panel-list--compact {
+  margin-bottom: 8px;
+}
+
+.cq-flow .cq-panel-section {
+  margin-top: 20px;
+}
+
+.cq-flow .cq-panel-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 10px;
+  padding-left: 2px;
+}
+
+.cq-flow .cq-panel-card-icon--tinted {
+  background: color-mix(in srgb, var(--icon-tint, var(--primary)) 12%, var(--surface)) !important;
+  border-color: color-mix(in srgb, var(--icon-tint, var(--primary)) 22%, var(--border)) !important;
+}
+
+.cq-flow .cq-panel-card:hover {
+  border-color: color-mix(in srgb, var(--card-accent, var(--primary)) 50%, var(--border));
+  background: color-mix(in srgb, var(--card-accent, var(--primary)) 6%, var(--surface));
+}
+
+.cq-flow .cq-panel-node:hover {
+  border-color: color-mix(in srgb, var(--card-accent, var(--primary)) 45%, var(--border));
+  background: color-mix(in srgb, var(--card-accent, var(--primary)) 6%, var(--primary-soft));
+}
+
+/* ── Empty canvas starter ─────────────────────────────────────────────────── */
+.cq-flow .cq-first-step {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.cq-flow .cq-first-step-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 48px;
+  border: 2px dashed var(--border-strong);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+  max-width: 360px;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.cq-flow .cq-first-step:hover .cq-first-step-card {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  transform: translateY(-2px);
+}
+
+.cq-flow .cq-first-step-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.cq-flow .cq-first-step-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cq-flow .cq-first-step-sub {
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.45;
+}
+
+
+/* ── Category / option cards (reference design) ─────────────────────────── */
+.cq-flow .cq-panel-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  color: inherit;
+}
+
+.cq-flow .cq-panel-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: var(--primary-soft);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+}
+
+.cq-flow .cq-panel-card:active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary-soft) 80%, var(--surface));
+}
+
+.cq-flow .cq-panel-card--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cq-flow .cq-panel-card--disabled:hover {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.cq-flow .cq-panel-card-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cq-flow .cq-panel-card:hover .cq-panel-card-icon {
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
+}
+
+.cq-flow .cq-panel-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cq-flow .cq-panel-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.cq-flow .cq-panel-card-desc {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+
+.cq-flow .cq-panel-card-arrow {
+  flex-shrink: 0;
+  color: var(--ink-faint);
+}
+
+.cq-flow .cq-panel-card:hover .cq-panel-card-arrow {
+  color: var(--ink-muted);
+}
+
+/* ── Node list items (drill-down) ───────────────────────────────────────── */
+.cq-flow .cq-panel-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cq-flow .cq-panel-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.cq-flow .cq-panel-node:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: var(--primary-soft);
+}
+
+.cq-flow .cq-panel-node-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.cq-flow .cq-panel-node:hover .cq-panel-node-icon {
+  background: var(--surface);
+}
+
+.cq-flow .cq-panel-node-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cq-flow .cq-panel-node-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cq-flow .cq-panel-node-desc {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.cq-flow .cq-panel-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  margin-left: 6px;
+}
+
+.cq-flow .cq-panel-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+/* ── Execution history drawer ───────────────────────────────────────────── */
+.cq-flow .cq-panel--drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  animation: cq-panel-slide 0.2s ease;
+}
+
+@keyframes cq-panel-slide {
+  from { transform: translateX(12px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.cq-flow .cq-exec-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  margin-bottom: 8px;
+}
+
+.cq-flow .cq-exec-item:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: var(--primary-soft);
+}
+
+.cq-flow .cq-exec-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cq-flow .cq-exec-item-id {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cq-flow .cq-exec-item-time {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+.cq-flow .cq-exec-item-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.cq-flow .cq-exec-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.cq-flow .cq-exec-badge--success {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.cq-flow .cq-exec-badge--error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.cq-flow .cq-exec-badge--running {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.cq-flow .cq-exec-duration {
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.cq-flow .exec-icon--success { color: #22c55e; }
+.cq-flow .exec-icon--error { color: #ef4444; }
+.cq-flow .exec-icon--running { color: var(--primary); animation: cq-spin 1s linear infinite; }
+.cq-flow .exec-icon--pending { color: var(--ink-faint); }
+
+@keyframes cq-spin {
+  to { transform: rotate(360deg); }
+}

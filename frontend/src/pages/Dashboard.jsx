@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bot, Workflow, Zap, ArrowRight, Plus, TrendingUp, Sparkles, Database, Cpu } from 'lucide-react'
+import { Bot, Workflow, Zap, ArrowRight, Plus, TrendingUp, Sparkles, Database, Cpu, Boxes, DollarSign } from 'lucide-react'
 import { api } from '../api/client'
 
 const STAT_STYLES = {
@@ -14,13 +14,15 @@ export default function Dashboard() {
   const [workflows, setWorkflows] = useState([])
   const [executions, setExecutions] = useState([])
   const [nodeCount, setNodeCount] = useState(0)
+  const [usage, setUsage] = useState(null)
 
   useEffect(() => {
-    Promise.all([api.getWorkflows(), api.getExecutions(), api.getNodes()])
-      .then(([w, e, n]) => {
+    Promise.all([api.getWorkflows(), api.getExecutions(), api.getNodes(), api.usageSummary(30)])
+      .then(([w, e, n, u]) => {
         setWorkflows(w)
         setExecutions(e)
         setNodeCount(n.count)
+        setUsage(u)
       })
       .catch(console.error)
   }, [])
@@ -82,6 +84,39 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Usage strip — LLM cost visibility (rare in low-code tools) */}
+      {usage && (
+        <div className="grid sm:grid-cols-3 gap-4 mb-8">
+          <div className="cq-card p-5 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, #06b6d4 14%, transparent)' }}>
+              <Zap className="w-5 h-5" style={{ color: '#06b6d4' }} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{usage.total_calls ?? 0}</p>
+              <p className="text-sm text-muted">LLM calls (30d)</p>
+            </div>
+          </div>
+          <div className="cq-card p-5 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, #8b5cf6 14%, transparent)' }}>
+              <TrendingUp className="w-5 h-5" style={{ color: '#8b5cf6' }} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{(usage.total_tokens ?? 0).toLocaleString()}</p>
+              <p className="text-sm text-muted">Tokens used (30d)</p>
+            </div>
+          </div>
+          <div className="cq-card p-5 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, #10b981 14%, transparent)' }}>
+              <DollarSign className="w-5 h-5" style={{ color: '#10b981' }} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">${(usage.estimated_cost_usd ?? 0).toFixed(2)}</p>
+              <p className="text-sm text-muted">Est. cost (30d) · <Link to="/usage" className="hover:underline" style={{ color: 'var(--primary)' }}>Details</Link></p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -181,11 +216,12 @@ export default function Dashboard() {
       </div>
 
       {/* Shortcuts */}
-      <div className="grid sm:grid-cols-3 gap-4 mt-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
         {[
           { to: '/datasets', label: 'Upload a dataset', desc: 'Bring CSV, Parquet & more', icon: Database, tone: 'cyan' },
+          { to: '/vectors', label: 'Knowledge Studio', desc: 'Ingest & search docs for RAG', icon: Boxes, tone: 'emerald' },
           { to: '/models', label: 'Train a model', desc: 'No-code AutoML', icon: Cpu, tone: 'violet' },
-          { to: '/agents', label: 'Create an agent', desc: 'Tools + memory', icon: Bot, tone: 'emerald' },
+          { to: '/agents', label: 'Create an agent', desc: 'Tools + memory', icon: Bot, tone: 'amber' },
         ].map(({ to, label, desc, icon: Icon, tone }) => {
           const s = STAT_STYLES[tone]
           return (

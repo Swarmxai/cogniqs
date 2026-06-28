@@ -7,54 +7,26 @@ import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import { Plus, Play, Power, Trash2, MoreHorizontal, MessageSquare } from 'lucide-react'
 import { NodeIcon } from './icons/NodeIcons'
-
-const GROUP_META = {
-  trigger: { label: 'Trigger', color: '#6366f1' },
-  action: { label: 'Action', color: '#4f46e5' },
-  transform: { label: 'Transform', color: '#f59e0b' },
-  logic: { label: 'Logic', color: '#8b5cf6' },
-  ai_model: { label: 'Model', color: '#06b6d4' },
-  ai_tool: { label: 'Tool', color: '#10b981' },
-  ai_memory: { label: 'Memory', color: '#ec4899' },
-  ai_embedding: { label: 'Embed', color: '#14b8a6' },
-  analysis: { label: 'Analysis', color: '#f97316' },
-  ml: { label: 'ML', color: '#a855f7' },
-}
+import { getGroupBrand, AI_SLOT_BRAND } from './nodeBranding'
 
 const AI_TYPES = [
   'ai_languageModel', 'ai_agent', 'ai_tool', 'ai_memory', 'ai_outputParser',
   'ai_embedding', 'ai_embeddings', 'ai_vectorStore', 'ai_retriever',
 ]
 
-const AI_LABELS = {
-  ai_languageModel: 'Chat Model',
-  ai_agent: 'Agent',
-  ai_tool: 'Tool',
-  ai_memory: 'Memory',
-  ai_outputParser: 'Parser',
-  ai_embedding: 'Embed',
-  ai_embeddings: 'Embed',
-  ai_vectorStore: 'Vector',
-  ai_retriever: 'Retriever',
-}
+const AI_LABELS = Object.fromEntries(
+  Object.entries(AI_SLOT_BRAND).map(([k, v]) => [k, v.label]),
+)
 
-const AI_COLORS = {
-  ai_languageModel: '#06b6d4',
-  ai_agent: '#6366f1',
-  ai_tool: '#10b981',
-  ai_memory: '#ec4899',
-  ai_outputParser: '#14b8a6',
-  ai_embedding: '#14b8a6',
-  ai_embeddings: '#14b8a6',
-  ai_vectorStore: '#8b5cf6',
-  ai_retriever: '#f59e0b',
-}
+const AI_COLORS = Object.fromEntries(
+  Object.entries(AI_SLOT_BRAND).map(([k, v]) => [k, v.color]),
+)
 
 function WorkflowNodeInner({ data, selected, id: nodeId }) {
   const safe = data || {}
   const desc = safe._desc || {}
   const group = desc.group || 'action'
-  const meta = GROUP_META[group] || GROUP_META.action
+  const meta = getGroupBrand(group)
   const isTrigger = group === 'trigger'
   const isChat = desc.name === 'chat_trigger' || desc.name === 'chat_node'
   const icon = desc.icon || 'zap'
@@ -159,7 +131,7 @@ function WorkflowNodeInner({ data, selected, id: nodeId }) {
       ))}
 
       <div className="cq-node-actions">
-        <button type="button" className="cq-node-action" onClick={(e) => { e.stopPropagation(); safe.onRunNode?.(nodeId) }} title="Run step" disabled={disabled}>
+        <button type="button" className="cq-node-action" onClick={(e) => { e.stopPropagation(); safe.onRunNode?.(nodeId) }} title="Test this step" disabled={disabled}>
           <Play size={13} />
         </button>
         <button type="button" className={`cq-node-action ${disabled ? 'cq-node-action--off' : ''}`} onClick={(e) => { e.stopPropagation(); safe.onToggleNode?.(nodeId) }} title={disabled ? 'Enable' : 'Disable'}>

@@ -10,7 +10,9 @@ from app.database import get_db
 from app.engine.node_registry import get_all_node_descriptions, get_node_categories
 from app.executions.service import ExecutionService
 from app.models.workflow import Workflow
+from app.services.webhook_tokens import make_webhook_token
 from app.schemas.workflow import (
+    ExecuteNodeRequest,
     ExecuteRequest,
     ExecutionResponse,
     WorkflowCreate,
@@ -91,6 +93,29 @@ async def delete_workflow(workflow_id: int, user: CurrentUser, db: AsyncSession 
     wf = await _get_owned_workflow(db, workflow_id, user.id)
     await db.delete(wf)
     return {"deleted": True}
+
+
+@router.get("/{workflow_id}/webhook")
+async def get_webhook_url(workflow_id: int, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
+    wf = await _get_owned_workflow(db, workflow_id, user.id)
+    token = make_webhook_token(wf.id, wf.owner_id)
+    return {
+        "workflow_id": wf.id,
+        "active": wf.active,
+        "token": token,
+        "url": f"/api/webhooks/{wf.id}/{token}",
+        "method": "POST",
+        "hint": "Activate the workflow and POST JSON to this URL from any external system.",
+    }
+
+
+@router.post("/{workflow_id}/execute-node", response_model=ExecutionResponse)
+async def execute_workflow_node(
+    workflow_id: int, body: ExecuteNodeRequest, user: CurrentUser, db: AsyncSession = Depends(get_db)
+) -> ExecutionResponse:
+    wf = await _get_owned_workflow(db, workflow_id, user.id)
+    execution = await ExecutionService.run_single_node(db, wf, body.node_id, body.trigger_data, user.id)
+    return _serialize_execution(execution)
 
 
 @router.post("/{workflow_id}/execute", response_model=ExecutionResponse)

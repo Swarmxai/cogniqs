@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import secrets
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -33,6 +35,12 @@ class AgentBody(BaseModel):
 class AgentChatBody(BaseModel):
     message: str
     session_id: str = "default"
+
+
+class PublicAgentChatBody(BaseModel):
+    message: str
+    session_id: str = "default"
+    token: str = ""
 
 
 @router.get("")
@@ -89,6 +97,41 @@ async def delete_agent(agent_id: int, user: CurrentUser, db: AsyncSession = Depe
     agent = await _get_owned(db, agent_id, user.id)
     await db.delete(agent)
     return {"deleted": True}
+
+
+@router.post("/{agent_id}/publish")
+async def publish_agent(agent_id: int, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
+    agent = await _get_owned(db, agent_id, user.id)
+    cfg = json.loads(agent.config or "{}")
+    if not cfg.get("publish_token"):
+        cfg["publish_token"] = secrets.token_urlsafe(24)
+    agent.config = json.dumps(cfg)
+    agent.published = True
+    await db.flush()
+    d = agent.to_dict()
+    d["embed_url"] = f"/embed/agents/{agent.id}?token={cfg['publish_token']}"
+    return d
+
+
+@router.post("/public/{agent_id}/chat")
+async def public_agent_chat(agent_id: int, body: PublicAgentChatBody, db: AsyncSession = Depends(get_db)) -> dict:
+    result = await db.execute(select(Agent).where(Agent.id == agent_id, Agent.published == True))  # noqa: E712
+    agent = result.scalar_one_or_none()
+    if not agent:
+        raise NotFoundError("Agent not found or not published")
+    cfg = json.loads(agent.config or "{}")
+    if cfg.get("publish_token") != body.token:
+        raise NotFoundError("Invalid publish token")
+    session_key = f"agent_{agent_id}_{body.session_id}"
+    history = await session_store.get_history(session_key)
+    messages = [{"role": "system", "content": agent.system_prompt}]
+    messages.extend(history)
+    messages.append({"role": "user", "content": body.message})
+    result_llm = await LLMService.chat({"provider": agent.provider, "model": agent.model}, messages)
+    reply = result_llm.get("content", "")
+    await session_store.add_message(session_key, "user", body.message)
+    await session_store.add_message(session_key, "assistant", reply)
+    return {"reply": reply}
 
 
 @router.post("/{agent_id}/chat")

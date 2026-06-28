@@ -200,3 +200,152 @@ nodes:
   model_evaluation:
     import_path: app.nodes.analysis.analytics_advanced.ModelEvaluationNode
     config: {}
+
+  dataset_merge:
+    import_path: app.nodes.analysis.analytics_extra.DatasetMergeNode
+    config: {}
+
+  feature_transform:
+    import_path: app.nodes.analysis.analytics_extra.FeatureTransformNode
+    config: {}
+
+  drift_monitor:
+    import_path: app.nodes.analysis.analytics_extra.DriftMonitorNode
+    config: {}
+
+  time_series_studio:
+    import_path: app.nodes.analysis.analytics_extra.TimeSeriesStudioNode
+    config: {}
+
+  fft_analysis:
+    import_path: app.nodes.analysis.analytics_extra.FFTAnalysisNode
+    config: {}
+
+  market_basket:
+    import_path: app.nodes.analysis.analytics_extra.MarketBasketNode
+    config: {}
+
+  # ── Extended triggers ─────────────────────────────────────────────
+  error_trigger:
+    import_path: app.nodes.triggers.triggers_extra.ErrorTriggerNode
+    config: {}
+
+  api_trigger:
+    import_path: app.nodes.triggers.triggers_extra.APITriggerNode
+    config: {}
+
+  slack_trigger:
+    import_path: app.nodes.triggers.triggers_extra.SlackTriggerNode
+    config: {}
+
+  telegram_trigger:
+    import_path: app.nodes.triggers.triggers_extra.TelegramTriggerNode
+    config: {}
+
+  # ── Vector stores & retrievers ──────────────────────────────────
+  vector_store_chromadb:
+    import_path: app.nodes.embeddings.vector_nodes.VectorStoreChromaDBNode
+    config: {}
+
+  vector_store_in_memory:
+    import_path: app.nodes.embeddings.vector_nodes.VectorStoreInMemoryNode
+    config: {}
+
+  retriever_vector_store:
+    import_path: app.nodes.embeddings.vector_nodes.RetrieverVectorStoreNode
+    config: {}
+
+  embeddings_azure:
+    import_path: app.nodes.embeddings.embeddings_nodes.AzureOpenAIEmbeddingsNode
+    config: {}
+
+  # ── Extended AI ───────────────────────────────────────────────────
+  llm_custom_endpoint:
+    import_path: app.nodes.llm.llm_custom_endpoint.LLMCustomEndpointNode
+    config: {}
+
+  supervisor_agent:
+    import_path: app.nodes.ai.supervisor_agent.SupervisorAgentNode
+    config: {}
+
+  qa_chain:
+    import_path: app.nodes.ai.chains_extra.QAChainNode
+    config: {}
+
+  summarization_chain:
+    import_path: app.nodes.ai.chains_extra.SummarizationChainNode
+    config: {}
+
+  multimodal_ingest:
+    import_path: app.nodes.ai.chains_extra.MultimodalIngestNode
+    config: {}
+
+  multimodal_rag_qa:
+    import_path: app.nodes.ai.chains_extra.MultimodalRAGQANode
+    config: {}
+
+  conversation_memory:
+    import_path: app.nodes.ai.memory_extra.ConversationMemoryNode
+    config: {}
+
+  memory_token_buffer:
+    import_path: app.nodes.ai.memory_extra.MemoryTokenBufferNode
+    config: {}
+
+  output_parser_structured:
+    import_path: app.nodes.ai.output_parsers.StructuredOutputParserNode
+    config: {}
+
+  output_parser_list:
+    import_path: app.nodes.ai.output_parsers.ListOutputParserNode
+    config: {}
+
+  information_extractor:
+    import_path: app.nodes.ai.nlp_nodes.InformationExtractorNode
+    config: {}
+
+  text_classifier:
+    import_path: app.nodes.ai.nlp_nodes.TextClassifierNode
+    config: {}
+
+  sentiment_analysis:
+    import_path: app.nodes.ai.nlp_nodes.SentimentAnalysisNode
+    config: {}
+
+  tool_calculator:
+    import_path: app.nodes.ai.tools_extra.ToolCalculatorNode
+    config: {}
+
+  tool_code:
+    import_path: app.nodes.ai.tools_extra.ToolCodeNode
+    config: {}
+
+  tool_wikipedia:
+    import_path: app.nodes.ai.tools_extra.ToolWikipediaNode
+    config: {}
+
+  # ── Document pipeline ─────────────────────────────────────────────
+  text_splitter:
+    import_path: app.nodes.data.documents_extra.TextSplitterNode
+    config: {}
+
+  document_loader:
+    import_path: app.nodes.data.documents_extra.DocumentLoaderNode
+    config: {}
+
+  # ── Extended logic & integrations ────────────────────────────────
+  loop_node:
+    import_path: app.nodes.logic.loop_node.LoopNode
+    config: {}
+
+  human_approval:
+    import_path: app.nodes.logic.human_approval.HumanApprovalNode
+    config: {}
+
+  respond_webhook:
+    import_path: app.nodes.integrations.integrations_more.RespondWebhookNode
+    config: {}
+
+  email_read:
+    import_path: app.nodes.integrations.integrations_more.EmailReadNode
+    config: {}

@@ -46,6 +46,7 @@ class NodeProperty:
         placeholder: str = "",
         options: list[NodePropertyOption] | None = None,
         display_options: dict[str, Any] | None = None,
+        type_options: dict[str, Any] | None = None,
     ):
         self.display_name = display_name
         self.name = name
@@ -56,6 +57,7 @@ class NodeProperty:
         self.placeholder = placeholder
         self.options = options or []
         self.display_options = display_options
+        self.type_options = type_options
 
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {
@@ -73,6 +75,8 @@ class NodeProperty:
             d["options"] = [o.to_dict() for o in self.options]
         if self.display_options:
             d["displayOptions"] = self.display_options
+        if self.type_options:
+            d["typeOptions"] = self.type_options
         return d
 
 
@@ -93,6 +97,7 @@ class NodeDescription:
         properties: list[NodeProperty] | None = None,
         is_ai_subnode: bool = False,
         ai_output_type: str | None = None,
+        credentials: list[dict[str, Any]] | None = None,
     ):
         self.display_name = display_name
         self.name = name
@@ -105,6 +110,7 @@ class NodeDescription:
         self.properties = properties or []
         self.is_ai_subnode = is_ai_subnode
         self.ai_output_type = ai_output_type
+        self.credentials = credentials or []
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -119,6 +125,7 @@ class NodeDescription:
             "properties": [p.to_dict() for p in self.properties],
             "isAiSubnode": self.is_ai_subnode,
             "aiOutputType": self.ai_output_type,
+            "credentials": self.credentials,
         }
 
 

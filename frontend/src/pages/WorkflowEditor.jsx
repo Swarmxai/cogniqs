@@ -17,7 +17,7 @@ import {
   MarkerType,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ArrowLeft, Save, Play, Plus, MessageSquare, AlignLeft, History, Trash2 } from 'lucide-react'
+import { ArrowLeft, Save, Play, Plus, MessageSquare, AlignLeft, History, Trash2, Webhook, Power } from 'lucide-react'
 import { api } from '../api/client'
 import { WorkflowNode } from '../components/workflow/WorkflowNode'
 import { StickyNoteNode } from '../components/workflow/StickyNoteNode'
@@ -28,6 +28,7 @@ import { ExecutionHistory } from '../components/workflow/ExecutionHistory'
 import ExecutePanel from '../components/workflow/ExecutePanel'
 import ChatPanel from '../components/workflow/ChatPanel'
 import { adaptNode } from '../components/workflow/nodeAdapter'
+import { applyNodeBrand } from '../components/workflow/nodeBranding'
 import { autoLayoutNodes } from '../components/workflow/autoLayout'
 import {
   AI_EDGE,
@@ -41,6 +42,7 @@ import {
 } from '../components/workflow/workflowEditorUtils'
 import '../components/workflow/mindscrybe-editor.css'
 import '../components/workflow/cogniqs-nodes.css'
+import '../components/workflow/cogniqs-sidepanel.css'
 
 const nodeTypes = { workflowNode: WorkflowNode, stickyNote: StickyNoteNode }
 
@@ -52,6 +54,11 @@ export default function WorkflowEditor() {
   const navigate = useNavigate()
   const [workflow, setWorkflow] = useState(null)
   const [workflowName, setWorkflowName] = useState('')
+  const [projectId, setProjectId] = useState(null)
+  const [workflowActive, setWorkflowActive] = useState(false)
+  const [projects, setProjects] = useState([])
+  const [webhookInfo, setWebhookInfo] = useState(null)
+  const [showWebhook, setShowWebhook] = useState(false)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [nodeMap, setNodeMap] = useState({})
@@ -82,13 +89,16 @@ export default function WorkflowEditor() {
   }, [setNodes])
 
   useEffect(() => {
-    Promise.all([api.getWorkflow(id), api.getNodes()]).then(([wf, resp]) => {
+    Promise.all([api.getWorkflow(id), api.getNodes(), api.getProjects()]).then(([wf, resp, projs]) => {
       setWorkflow(wf)
       setWorkflowName(wf.name || '')
+      setProjectId(wf.project_id ?? null)
+      setWorkflowActive(!!wf.active)
+      setProjects(projs)
       const map = {}
       const descs = []
       ;(resp.nodes || []).forEach((n) => {
-        const a = adaptNode(n)
+        const a = adaptNode(applyNodeBrand(n))
         map[n.name] = a
         descs.push(a)
       })
@@ -219,16 +229,66 @@ export default function WorkflowEditor() {
   const onOpenChat = useCallback(() => setShowChat(true), [])
   const noop = useCallback(() => {}, [])
 
+  const save = useCallback(async () => {
+    setSaveStatus('saving')
+    try {
+      const payload = serializeWorkflow(nodesRef.current, edgesRef.current)
+      await api.updateWorkflow(id, {
+        ...payload,
+        name: workflowName,
+        project_id: projectId,
+        active: workflowActive,
+      })
+      setWorkflow((w) => (w ? { ...w, name: workflowName, project_id: projectId, active: workflowActive } : w))
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus(null), 1500)
+    } catch (err) {
+      setSaveStatus(null)
+      alert(err.message)
+    }
+  }, [id, workflowName, projectId, workflowActive])
+
+  const applyExecution = useCallback((ex) => {
+    const outputs = ex?.result?.nodeOutputs || ex?.nodeOutputs || {}
+    const status = ex?.status || ex?.result?.status
+    setNodes((nds) => paintExecutionResults(nds, outputs, status))
+    setExecResult({
+      status: normStatus(status),
+      duration_ms: ex?.finished_at && ex?.started_at
+        ? new Date(ex.finished_at) - new Date(ex.started_at)
+        : null,
+    })
+  }, [setNodes])
+
+  const execute = useCallback(async (triggerData) => {
+    await save()
+    const ex = await api.executeWorkflow(id, triggerData)
+    applyExecution(ex)
+    setExecRefreshKey((k) => k + 1)
+    return ex
+  }, [id, save, applyExecution])
+
+  const runSingleNode = useCallback(async (nodeId) => {
+    await save()
+    try {
+      const ex = await api.executeWorkflowNode(id, nodeId, { message: 'step test', approved: true })
+      applyExecution(ex)
+      setExecRefreshKey((k) => k + 1)
+    } catch (err) {
+      alert(err.message)
+    }
+  }, [id, save, applyExecution])
+
   const callbacks = useMemo(() => ({
     onAddAfter,
     onAddAiSubNode,
     onDeleteNode,
     onToggleNode,
-    onRunNode: onExecuteWorkflow,
+    onRunNode: runSingleNode,
     onExecuteWorkflow,
     onOpenChat,
     onOpenMoreMenu: noop,
-  }), [onAddAfter, onAddAiSubNode, onDeleteNode, onToggleNode, onExecuteWorkflow, onOpenChat, noop])
+  }), [onAddAfter, onAddAiSubNode, onDeleteNode, onToggleNode, runSingleNode, onExecuteWorkflow, onOpenChat, noop])
 
   const nodesForFlow = useMemo(() => nodes.map((n) => {
     if (n.type === 'stickyNote') {
@@ -252,39 +312,30 @@ export default function WorkflowEditor() {
     }
   }), [nodes, edges, selectedId, callbacks, onStickyTextChange])
 
-  const save = useCallback(async () => {
-    setSaveStatus('saving')
+  const hasWebhookTrigger = useMemo(
+    () => nodes.some((n) => n.data?.type === 'webhook_trigger'),
+    [nodes],
+  )
+
+  useEffect(() => {
+    if (hasWebhookTrigger) {
+      api.getWebhookUrl(id).then(setWebhookInfo).catch(() => setWebhookInfo(null))
+    } else {
+      setWebhookInfo(null)
+    }
+  }, [id, hasWebhookTrigger, workflowActive])
+
+  const toggleActive = useCallback(async () => {
+    const next = !workflowActive
     try {
-      const payload = serializeWorkflow(nodesRef.current, edgesRef.current)
-      await api.updateWorkflow(id, { ...payload, name: workflowName })
-      setWorkflow((w) => (w ? { ...w, name: workflowName } : w))
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus(null), 1500)
+      await api.updateWorkflow(id, { active: next })
+      setWorkflowActive(next)
+      setWorkflow((w) => (w ? { ...w, active: next } : w))
+      if (hasWebhookTrigger) api.getWebhookUrl(id).then(setWebhookInfo).catch(() => {})
     } catch (err) {
-      setSaveStatus(null)
       alert(err.message)
     }
-  }, [id, workflowName])
-
-  const applyExecution = useCallback((ex) => {
-    const outputs = ex?.result?.nodeOutputs || ex?.nodeOutputs || {}
-    const status = ex?.status || ex?.result?.status
-    setNodes((nds) => paintExecutionResults(nds, outputs, status))
-    setExecResult({
-      status: normStatus(status),
-      duration_ms: ex?.finished_at && ex?.started_at
-        ? new Date(ex.finished_at) - new Date(ex.started_at)
-        : null,
-    })
-  }, [setNodes])
-
-  const execute = useCallback(async (triggerData) => {
-    await save()
-    const ex = await api.executeWorkflow(id, triggerData)
-    applyExecution(ex)
-    setExecRefreshKey((k) => k + 1)
-    return ex
-  }, [id, save, applyExecution])
+  }, [id, workflowActive, hasWebhookTrigger])
 
   const organize = useCallback(() => {
     const laid = autoLayoutNodes(nodesRef.current, edgesRef.current)
@@ -329,6 +380,17 @@ export default function WorkflowEditor() {
             onChange={(e) => setWorkflowName(e.target.value)}
             placeholder="Untitled Workflow"
           />
+          <select
+            className="workflow-name-input ml-2 !w-36 !text-xs opacity-80"
+            value={projectId ?? ''}
+            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : null)}
+            title="Assign to project"
+          >
+            <option value="">No project</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
           {saveStatus === 'saving' && <span className="save-status">Saving…</span>}
           {saveStatus === 'saved' && <span className="save-status save-status--success">Saved</span>}
         </div>
@@ -347,6 +409,19 @@ export default function WorkflowEditor() {
           {selectedId && (
             <button type="button" className="btn btn-danger btn-sm" onClick={() => onDeleteNode(selectedId)}>
               <Trash2 size={14} />
+            </button>
+          )}
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm ${workflowActive ? 'btn-ghost--active' : ''}`}
+            onClick={toggleActive}
+            title={workflowActive ? 'Workflow is live' : 'Activate for webhooks & schedules'}
+          >
+            <Power size={14} /> {workflowActive ? 'Live' : 'Inactive'}
+          </button>
+          {hasWebhookTrigger && webhookInfo && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowWebhook(true)} title="Webhook URL">
+              <Webhook size={14} /> Webhook
             </button>
           )}
           <button type="button" className="btn btn-ghost btn-sm" onClick={addStickyNote} title="Add sticky note">
@@ -371,7 +446,7 @@ export default function WorkflowEditor() {
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowChat(true)}>
             <MessageSquare size={14} /> Chat
           </button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowExecute(true)}>
+          <button type="button" className="btn btn-primary btn-sm" data-testid="workflow-execute" onClick={() => setShowExecute(true)}>
             <Play size={14} /> Execute
           </button>
         </div>
@@ -423,6 +498,25 @@ export default function WorkflowEditor() {
             />
           )}
           {showChat && <ChatPanel workflowId={id} onClose={() => setShowChat(false)} />}
+          {showWebhook && webhookInfo && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowWebhook(false)}>
+              <div className="cq-card max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
+                <h3 className="font-semibold mb-2 flex items-center gap-2"><Webhook className="w-4 h-4" /> Production webhook</h3>
+                <p className="text-sm text-muted mb-4">
+                  {workflowActive
+                    ? 'POST JSON to this URL from Slack, Zapier, GitHub, or any HTTP client.'
+                    : 'Activate the workflow (Live) before external systems can trigger it.'}
+                </p>
+                <code className="block text-xs p-3 rounded-xl cq-surface-2 break-all mb-3">
+                  {window.location.origin}{webhookInfo.url}
+                </code>
+                <button type="button" className="cq-btn cq-btn-ghost text-sm"
+                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}${webhookInfo.url}`)}>
+                  Copy URL
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <ExecutionHistory

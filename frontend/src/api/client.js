@@ -28,6 +28,10 @@ class ApiClient {
     return this.request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
   }
 
+  loginMfa(email, password, code) {
+    return this.request('/auth/login/mfa', { method: 'POST', body: JSON.stringify({ email, password, code }) })
+  }
+
   register(email, password, name) {
     return this.request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name }) })
   }
@@ -67,6 +71,13 @@ class ApiClient {
     })
   }
 
+  executeWorkflowNode(id, nodeId, triggerData = {}) {
+    return this.request(`/workflows/${id}/execute-node`, {
+      method: 'POST',
+      body: JSON.stringify({ node_id: nodeId, trigger_data: triggerData }),
+    })
+  }
+
   getExecutions(workflowId) {
     const qs = workflowId != null ? `?workflow_id=${workflowId}` : ''
     return this.request(`/executions${qs}`)
@@ -99,8 +110,16 @@ class ApiClient {
     return this.request('/credentials', { method: 'POST', body: JSON.stringify(data) })
   }
 
+  updateCredential(id, data) {
+    return this.request(`/credentials/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  }
+
   deleteCredential(id) {
     return this.request(`/credentials/${id}`, { method: 'DELETE' })
+  }
+
+  getCredentialMeta(id) {
+    return this.request(`/credentials/${id}/meta`)
   }
 
   // ── Datasets ─────────────────────────────────────────────
@@ -188,6 +207,14 @@ class ApiClient {
     return this.request('/autogluon/hyperparameters')
   }
 
+  getAutoMLOptions() {
+    return this.request('/automl/options')
+  }
+
+  trainAutoML(data) {
+    return this.request('/automl/train', { method: 'POST', body: JSON.stringify(data) })
+  }
+
   // ── Projects ─────────────────────────────────────────────
   getProjects() { return this.request('/projects') }
   createProject(data) { return this.request('/projects', { method: 'POST', body: JSON.stringify(data) }) }
@@ -205,14 +232,35 @@ class ApiClient {
   }
 
   // ── Usage analytics ──────────────────────────────────────
-  usageSummary(days = 30) { return this.request(`/usage/summary?days=${days}`) }
+  usageSummary(days = 30) {
+    return this.request(`/usage/summary?days=${days}`).then((u) => ({
+      ...u,
+      total_calls: u.call_count ?? u.total_calls ?? 0,
+      estimated_cost_usd: u.total_cost ?? u.estimated_cost_usd ?? 0,
+    }))
+  }
   usageByModel() { return this.request('/usage/models') }
   usageDaily(days = 30) { return this.request(`/usage/daily?days=${days}`) }
 
-  // ── Vectors ──────────────────────────────────────────────
+  getWebhookUrl(id) { return this.request(`/workflows/${id}/webhook`) }
+
+  // ── Vectors / Knowledge Studio ───────────────────────────
   getCollections() { return this.request('/vectors') }
+  createCollection(name) { return this.request('/vectors', { method: 'POST', body: JSON.stringify({ name }) }) }
   getCollection(name) { return this.request(`/vectors/${encodeURIComponent(name)}`) }
   deleteCollection(name) { return this.request(`/vectors/${encodeURIComponent(name)}`, { method: 'DELETE' }) }
+  ingestDocuments(name, texts, chunkSize = 800) {
+    return this.request(`/vectors/${encodeURIComponent(name)}/ingest`, {
+      method: 'POST',
+      body: JSON.stringify({ texts, chunk_size: chunkSize }),
+    })
+  }
+  searchCollection(name, query, topK = 5) {
+    return this.request(`/vectors/${encodeURIComponent(name)}/search`, {
+      method: 'POST',
+      body: JSON.stringify({ query, top_k: topK }),
+    })
+  }
 
   // ── Notifications ────────────────────────────────────────
   getNotifications() { return this.request('/notifications') }
@@ -235,9 +283,47 @@ class ApiClient {
   testDatabase(id) { return this.request(`/databases/${id}/test`, { method: 'POST' }) }
   deleteDatabase(id) { return this.request(`/databases/${id}`, { method: 'DELETE' }) }
 
+  getDatasetFolders() { return this.request('/datasets/folders') }
+
+  getDatabaseMeta(id) { return this.request(`/databases/${id}/meta`) }
+
+  deployModel(id) { return this.request(`/trained-models/${id}/deploy`, { method: 'POST' }) }
+
+  predictPublic(modelId, apiKey, records) {
+    return this.request(`/trained-models/${modelId}/predict/public?api_key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
+      body: JSON.stringify({ records }),
+    })
+  }
+
+  publishAgent(id) { return this.request(`/agents/${id}/publish`, { method: 'POST' }) }
+
+  chatAgentPublic(id, message, token, sessionId = 'default') {
+    return this.request(`/agents/public/${id}/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ message, token, session_id: sessionId }),
+    })
+  }
+
+  ingestFile(collection, file) {
+    const form = new FormData()
+    form.append('file', file)
+    const headers = {}
+    if (this.token) headers.Authorization = `Bearer ${this.token}`
+    return fetch(`${API_BASE}/vectors/${encodeURIComponent(collection)}/ingest-file`, {
+      method: 'POST', body: form, headers,
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(data.message || 'Upload failed')
+      return data
+    })
+  }
+
   // ── MFA ──────────────────────────────────────────────────
   mfaEnroll() { return this.request('/auth/mfa/enroll', { method: 'POST' }) }
   mfaVerify(code) { return this.request('/auth/mfa/verify', { method: 'POST', body: JSON.stringify({ code }) }) }
+  mfaValidate(code) { return this.request('/auth/mfa/validate', { method: 'POST', body: JSON.stringify({ code }) }) }
+  mfaDisable() { return this.request('/auth/mfa/disable', { method: 'POST' }) }
 }
 
 export const api = new ApiClient()

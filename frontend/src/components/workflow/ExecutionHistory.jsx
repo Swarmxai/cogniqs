@@ -1,5 +1,5 @@
 /**
- * ExecutionHistory — Right-side drawer (mindscrybe-style), wired to Cogniqs API.
+ * ExecutionHistory — Right-side drawer wired to Cogniqs API.
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -14,10 +14,10 @@ function norm(status) {
 
 function StatusIcon({ status }) {
   const s = norm(status)
-  if (s === 'success') return <CheckCircle size={14} className="exec-icon--success" />
-  if (s === 'error') return <XCircle size={14} className="exec-icon--error" />
-  if (s === 'running') return <Loader size={14} className="exec-icon--running" />
-  return <Clock size={14} className="exec-icon--pending" />
+  if (s === 'success') return <CheckCircle size={16} className="exec-icon--success" />
+  if (s === 'error') return <XCircle size={16} className="exec-icon--error" />
+  if (s === 'running') return <Loader size={16} className="exec-icon--running" />
+  return <Clock size={16} className="exec-icon--pending" />
 }
 
 function durationMs(ex) {
@@ -49,52 +49,52 @@ export function ExecutionHistory({ workflowId, open, onClose, onSelectExecution,
   if (!open) return null
 
   return (
-    <div className="exec-drawer">
-      <div className="exec-drawer-header">
-        <h3>Execution History</h3>
-        <button type="button" className="ndv-close" onClick={onClose} aria-label="Close">
-          <X size={16} />
+    <div className="cq-panel cq-panel--drawer">
+      <div className="cq-panel-header">
+        <div className="cq-panel-header-text">
+          <h3 className="cq-panel-title">Execution History</h3>
+          <p className="cq-panel-subtitle">{list.length} run{list.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button type="button" className="cq-panel-close" onClick={onClose} aria-label="Close">
+          <X size={18} />
         </button>
       </div>
-      <div className="exec-drawer-body">
+
+      <div className="cq-panel-body">
         {loading ? (
-          <div className="exec-drawer-empty">Loading…</div>
+          <div className="cq-panel-empty">Loading…</div>
         ) : list.length === 0 ? (
-          <div className="exec-drawer-empty">
-            <Clock size={24} style={{ opacity: 0.3 }} />
-            <p>No executions yet</p>
+          <div className="cq-panel-empty">
+            <Clock size={28} style={{ opacity: 0.25, marginBottom: 8 }} />
+            <div>No executions yet</div>
           </div>
         ) : (
-          <div className="exec-drawer-list">
-            {list.map((ex) => {
-              const ms = durationMs(ex)
-              const st = norm(ex.status)
-              return (
-                <button
-                  key={ex.id}
-                  type="button"
-                  className="exec-drawer-item"
-                  onClick={() => onSelectExecution?.(ex)}
-                >
-                  <StatusIcon status={ex.status} />
-                  <div className="exec-drawer-item-info">
-                    <div className="exec-drawer-item-id">#{ex.id}</div>
-                    <div className="exec-drawer-item-time">
-                      {ex.started_at ? new Date(ex.started_at).toLocaleString() : '—'}
-                    </div>
+          list.map((ex) => {
+            const ms = durationMs(ex)
+            const st = norm(ex.status)
+            return (
+              <button
+                key={ex.id}
+                type="button"
+                className="cq-exec-item"
+                onClick={() => onSelectExecution?.(ex)}
+              >
+                <StatusIcon status={ex.status} />
+                <div className="cq-exec-item-info">
+                  <div className="cq-exec-item-id">Run #{ex.id}</div>
+                  <div className="cq-exec-item-time">
+                    {ex.started_at ? new Date(ex.started_at).toLocaleString() : '—'}
                   </div>
-                  <div className="exec-drawer-item-meta">
-                    <span className={`status-pill status-pill--${st === 'success' ? 'active' : 'inactive'}`}>
-                      {st === 'success' ? '✓ Success' : st === 'error' ? '✕ Error' : st === 'running' ? '● Running' : ex.status}
-                    </span>
-                    <span className="exec-drawer-item-duration">
-                      {ms != null ? `${ms.toFixed(0)}ms` : ''}
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+                </div>
+                <div className="cq-exec-item-meta">
+                  <span className={`cq-exec-badge cq-exec-badge--${st === 'success' ? 'success' : st === 'error' ? 'error' : 'running'}`}>
+                    {st === 'success' ? 'Success' : st === 'error' ? 'Failed' : st || 'Pending'}
+                  </span>
+                  {ms != null && <span className="cq-exec-duration">{ms.toFixed(0)}ms</span>}
+                </div>
+              </button>
+            )
+          })
         )}
       </div>
     </div>

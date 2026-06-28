@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Bot, Plus, Trash2, Send, Settings, Mic, MessageSquare,
-  AudioLines, ArrowLeft, Volume2,
+  AudioLines, ArrowLeft, Volume2, Pencil, Globe, Copy,
 } from 'lucide-react'
 import { api } from '../api/client'
 
@@ -31,12 +31,15 @@ const emptyForm = () => ({
   stt_provider: 'deepgram',
   language: 'en',
   greeting: 'Hi! How can I help you today?',
+  credential_id: null,
 })
 
 export default function AIAgent() {
   const [agents, setAgents] = useState([])
   const [active, setActive] = useState(null)
-  // creation flow: null → 'type' (choose voice/text) → 'form'
+  const [editing, setEditing] = useState(null)
+  const [credentials, setCredentials] = useState([])
+  const [embedInfo, setEmbedInfo] = useState(null)
   const [step, setStep] = useState(null)
   const [form, setForm] = useState(emptyForm())
   const [messages, setMessages] = useState([])
@@ -45,7 +48,7 @@ export default function AIAgent() {
   const endRef = useRef(null)
 
   const load = () => api.getAgents().then(setAgents).catch(console.error)
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(); api.getCredentials().then(setCredentials).catch(() => {}) }, [])
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
   const startCreate = () => { setForm(emptyForm()); setStep('type') }
@@ -76,6 +79,7 @@ export default function AIAgent() {
       system_prompt: form.system_prompt,
       provider: form.provider,
       model: form.model,
+      credential_id: form.credential_id || null,
       config,
     })
     cancel()
@@ -90,7 +94,43 @@ export default function AIAgent() {
     }
   }
 
-  const selectAgent = (a) => { setActive(a); setMessages([]) }
+  const selectAgent = (a) => { setActive(a); setMessages([]); setEditing(null) }
+
+  const openEdit = (a) => {
+    setEditing({
+      id: a.id,
+      name: a.name,
+      system_prompt: a.system_prompt,
+      provider: a.provider,
+      model: a.model,
+      credential_id: a.credential_id || null,
+    })
+    setActive(a)
+  }
+
+  const saveEdit = async (e) => {
+    e.preventDefault()
+    if (!editing) return
+    const a = agents.find((x) => x.id === editing.id)
+    await api.updateAgent(editing.id, {
+      name: editing.name,
+      description: a?.description || '',
+      system_prompt: editing.system_prompt,
+      provider: editing.provider,
+      model: editing.model,
+      credential_id: editing.credential_id || null,
+      config: a?.config || {},
+      published: a?.published || false,
+    })
+    setEditing(null)
+    load()
+  }
+
+  const publish = async (id) => {
+    const res = await api.publishAgent(id)
+    setEmbedInfo(res)
+    load()
+  }
 
   const send = async () => {
     if (!input.trim() || !active) return
@@ -115,7 +155,7 @@ export default function AIAgent() {
           <h1 className="text-3xl font-bold tracking-tight mb-1">AI Agents</h1>
           <p className="text-muted">Build voice & text agents you can reuse anywhere</p>
         </div>
-        <button onClick={startCreate} className="cq-btn cq-btn-primary">
+        <button onClick={startCreate} data-testid="agent-new" className="cq-btn cq-btn-primary">
           <Plus className="w-4 h-4" /> New Agent
         </button>
       </div>
@@ -143,9 +183,9 @@ export default function AIAgent() {
                 <Mic className="w-5 h-5" style={{ color: '#8b5cf6' }} />
               </span>
               <p className="font-semibold mb-1 flex items-center gap-2">
-                Voice Agent <span className="cq-chip"><AudioLines className="w-3 h-3" /> Realtime</span>
+                Voice Agent <span className="cq-chip text-faint">Text preview</span>
               </p>
-              <p className="text-sm text-muted">Speech-to-speech assistant (STT → LLM → TTS), like ElevenLabs / Vapi.</p>
+              <p className="text-sm text-muted">Configure voice settings now; full STT/TTS runtime coming soon. Test as text chat below.</p>
             </button>
           </div>
           <button type="button" onClick={cancel} className="cq-btn cq-btn-ghost mt-5">Cancel</button>
@@ -166,7 +206,7 @@ export default function AIAgent() {
           </div>
 
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Agent name" required className="cq-input" />
+            placeholder="Agent name" required data-testid="agent-name" className="cq-input" />
           <textarea value={form.system_prompt} onChange={(e) => setForm({ ...form, system_prompt: e.target.value })}
             rows={3} placeholder="System prompt / persona" className="cq-input" />
 
@@ -180,6 +220,13 @@ export default function AIAgent() {
             <label className="text-xs text-faint">
               Model
               <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Model" className="cq-input mt-1" />
+            </label>
+            <label className="text-xs text-faint sm:col-span-2">
+              API credential (optional)
+              <select value={form.credential_id ?? ''} onChange={(e) => setForm({ ...form, credential_id: e.target.value ? Number(e.target.value) : null })} className="cq-input mt-1">
+                <option value="">Platform default</option>
+                {credentials.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.type})</option>)}
+              </select>
             </label>
           </div>
 
@@ -222,7 +269,7 @@ export default function AIAgent() {
           )}
 
           <div className="flex gap-2">
-            <button type="submit" className="cq-btn cq-btn-primary">Create {isVoice ? 'voice' : 'text'} agent</button>
+            <button type="submit" data-testid="agent-create-submit" className="cq-btn cq-btn-primary">Create {isVoice ? 'voice' : 'text'} agent</button>
             <button type="button" onClick={cancel} className="cq-btn cq-btn-ghost">Cancel</button>
           </div>
         </form>
@@ -248,7 +295,12 @@ export default function AIAgent() {
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className="cq-chip">{voice ? <><AudioLines className="w-3 h-3" /> Voice</> : <><MessageSquare className="w-3 h-3" /> Text</>}</span>
+                  {a.published && <span className="cq-chip text-emerald-500">Published</span>}
                   <span className="text-xs text-faint truncate">{a.provider} · {a.model}</span>
+                </div>
+                <div className="flex gap-1 mt-2">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(a) }} className="text-xs text-faint hover:text-[var(--ink)] flex items-center gap-1"><Pencil className="w-3 h-3" /> Edit</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); publish(a.id) }} className="text-xs text-faint hover:text-[var(--ink)] flex items-center gap-1"><Globe className="w-3 h-3" /> Publish</button>
                 </div>
               </button>
             )
@@ -257,26 +309,45 @@ export default function AIAgent() {
         </div>
 
         <div className="lg:col-span-2 cq-card flex flex-col h-[60vh]">
-          {active ? (
+          {editing ? (
+            <form onSubmit={saveEdit} className="p-4 space-y-3 overflow-y-auto">
+              <h3 className="font-semibold flex items-center gap-2"><Pencil className="w-4 h-4" /> Edit agent</h3>
+              <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="cq-input" required />
+              <textarea value={editing.system_prompt} onChange={(e) => setEditing({ ...editing, system_prompt: e.target.value })} rows={4} className="cq-input" />
+              <div className="grid grid-cols-2 gap-2">
+                <select value={editing.provider} onChange={(e) => setEditing({ ...editing, provider: e.target.value })} className="cq-input">
+                  {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="cq-input" />
+              </div>
+              <select value={editing.credential_id ?? ''} onChange={(e) => setEditing({ ...editing, credential_id: e.target.value ? Number(e.target.value) : null })} className="cq-input">
+                <option value="">Platform default credential</option>
+                {credentials.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <div className="flex gap-2">
+                <button type="submit" className="cq-btn cq-btn-primary">Save</button>
+                <button type="button" onClick={() => setEditing(null)} className="cq-btn cq-btn-ghost">Cancel</button>
+              </div>
+            </form>
+          ) : active ? (
             <>
-              <div className="p-4 border-b border-token flex items-center gap-2">
+              <div className="p-4 border-b border-token flex items-center gap-2 flex-wrap">
                 {agentType(active) === 'voice'
                   ? <Mic className="w-4 h-4" style={{ color: '#8b5cf6' }} />
                   : <Settings className="w-4 h-4 text-faint" />}
                 <span className="font-medium">{active.name}</span>
                 <span className="text-xs text-faint">{active.provider} · {active.model}</span>
-                {agentType(active) === 'voice' && active.config?.voice && (
-                  <span className="text-xs text-faint ml-auto truncate">
-                    {active.config.voice.tts_provider} · {active.config.voice.voice_id}
-                  </span>
-                )}
+                <div className="ml-auto flex gap-1">
+                  <button type="button" onClick={() => openEdit(active)} className="cq-btn cq-btn-ghost !px-2 !py-1 !text-xs"><Pencil className="w-3 h-3" /> Edit</button>
+                  <button type="button" data-testid="agent-publish" onClick={() => publish(active.id)} className="cq-btn cq-btn-ghost !px-2 !py-1 !text-xs"><Globe className="w-3 h-3" /> {active.published ? 'Republish' : 'Publish'}</button>
+                </div>
               </div>
 
               {agentType(active) === 'voice' && (
                 <div className="px-4 py-2 text-xs text-faint border-b border-token flex items-center gap-2"
                   style={{ background: 'var(--surface-2)' }}>
                   <AudioLines className="w-3.5 h-3.5" style={{ color: '#8b5cf6' }} />
-                  Voice runtime preview — you can test the conversation as text below.
+                  Voice settings saved — test conversation as text below (full audio runtime coming soon).
                 </div>
               )}
 
@@ -292,8 +363,9 @@ export default function AIAgent() {
               </div>
               <div className="p-3 border-t border-token flex gap-2">
                 <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()}
+                  data-testid="agent-chat-input"
                   placeholder={agentType(active) === 'voice' ? 'Type to test your voice agent…' : 'Message your agent…'} className="cq-input flex-1" />
-                <button onClick={send} disabled={busy} className="cq-btn cq-btn-primary !px-4"><Send className="w-4 h-4" /></button>
+                <button onClick={send} disabled={busy} data-testid="agent-chat-send" className="cq-btn cq-btn-primary !px-4"><Send className="w-4 h-4" /></button>
               </div>
             </>
           ) : (
@@ -301,6 +373,22 @@ export default function AIAgent() {
           )}
         </div>
       </div>
+
+      {embedInfo && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEmbedInfo(null)}>
+          <div className="cq-card max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold mb-2">Published agent embed</h3>
+            <p className="text-sm text-muted mb-3">Share this URL or iframe:</p>
+            <code className="block text-xs p-3 rounded-xl cq-surface-2 break-all mb-3">
+              {window.location.origin}{embedInfo.embed_url}
+            </code>
+            <button type="button" className="cq-btn cq-btn-ghost text-sm"
+              onClick={() => navigator.clipboard.writeText(`${window.location.origin}${embedInfo.embed_url}`)}>
+              <Copy className="w-4 h-4" /> Copy embed URL
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

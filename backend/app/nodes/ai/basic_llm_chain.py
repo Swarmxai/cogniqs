@@ -16,8 +16,30 @@ class BasicLLMChainNode(BaseNode):
         inputs=["main", "ai_languageModel"],
         outputs=["main"],
         properties=[
-            NodeProperty("Prompt Template", "prompt", "string", default="{{ $json.message }}"),
-            NodeProperty("System Message", "systemMessage", "string", default=""),
+            NodeProperty(
+                "Prompt Template",
+                "prompt",
+                "string",
+                default="{{ $json.message }}",
+                description="User message or expression.",
+                type_options={"rows": 4},
+            ),
+            NodeProperty(
+                "System Message",
+                "systemMessage",
+                "string",
+                default="",
+                description="Optional system instructions.",
+                type_options={"rows": 3},
+            ),
+            NodeProperty(
+                "Temperature Override",
+                "temperature",
+                "number",
+                default=0,
+                description="0 = use model default.",
+                type_options={"minValue": 0, "maxValue": 2, "step": 0.1},
+            ),
         ],
     )
 

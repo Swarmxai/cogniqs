@@ -15,8 +15,17 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const login = async (email, password) => {
+  const login = async (email, password, mfaCode) => {
+    if (mfaCode) {
+      const data = await api.loginMfa(email, password, mfaCode)
+      api.setToken(data.access_token)
+      setUser(data.user)
+      return data
+    }
     const data = await api.login(email, password)
+    if (data.mfa_required) {
+      return { mfaRequired: true, email: data.email }
+    }
     api.setToken(data.access_token)
     setUser(data.user)
     return data
@@ -34,8 +43,15 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const refreshUser = async () => {
+    if (api.token) {
+      const u = await api.me()
+      setUser(u)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

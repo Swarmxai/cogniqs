@@ -3,9 +3,10 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, Workflow, History, Moon, Sun, LogOut, Sparkles,
   LayoutTemplate, Key, Database, Cpu, FolderKanban, Bot, Boxes,
-  TrendingUp, Layout as LayoutIcon, Menu, Table2,
+  TrendingUp, Layout as LayoutIcon, Menu, Table2, Wand2, Settings as SettingsIcon,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import NotificationBell from './NotificationBell'
 import { useTheme } from '../context/ThemeContext'
 
 const navGroups = [
@@ -26,9 +27,10 @@ const navGroups = [
     label: 'Data & Models',
     items: [
       { to: '/datasets', label: 'Datasets', icon: Table2 },
+      { to: '/automl', label: 'Auto ML', icon: Wand2 },
       { to: '/databases', label: 'Databases', icon: Database },
-      { to: '/models', label: 'Models', icon: Cpu },
-      { to: '/vectors', label: 'Vectors', icon: Boxes },
+      { to: '/models', label: 'Model Library', icon: Cpu },
+      { to: '/vectors', label: 'Knowledge Studio', icon: Boxes },
     ],
   },
   {
@@ -38,6 +40,7 @@ const navGroups = [
       { to: '/usage', label: 'Usage', icon: TrendingUp },
       { to: '/templates', label: 'Templates', icon: LayoutTemplate },
       { to: '/credentials', label: 'Credentials', icon: Key },
+      { to: '/settings', label: 'Settings', icon: SettingsIcon },
     ],
   },
 ]
@@ -164,6 +167,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <button
               onClick={toggle}
               className="cq-btn cq-btn-ghost !px-2.5 !py-2"

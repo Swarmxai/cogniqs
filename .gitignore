@@ -28,3 +28,4 @@ __pycache__/
 backend/data/
 chroma_data/
 *.db
+!backend/cogniqs.db

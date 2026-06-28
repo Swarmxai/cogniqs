@@ -26,6 +26,7 @@ from app.api.credentials import router as credentials_router
 from app.api.datasets import router as datasets_router
 from app.api.trained_models import router as trained_models_router
 from app.api.autogluon import router as autogluon_router
+from app.api.automl import router as automl_router
 from app.api.projects import router as projects_router
 from app.api.usage import router as usage_router
 from app.api.agents import router as agents_router
@@ -34,6 +35,7 @@ from app.api.vectors import router as vectors_router
 from app.api.mfa import router as mfa_router
 from app.api.ui_projects import router as ui_projects_router
 from app.api.databases import router as databases_router
+from app.api.webhooks import router as webhooks_router
 from app.api.health import router as health_router
 
 import app.nodes  # noqa: F401
@@ -53,8 +55,12 @@ async def lifespan(app: FastAPI):
         await seed_templates(session)
         await session.commit()
     from app.engine.node_registry import registry_count
+    from app.services.schedule_runner import start_scheduler
     logger.info("Cogniqs v%s ready — %d node types", settings.APP_VERSION, registry_count())
+    start_scheduler()
     yield
+    from app.services.schedule_runner import stop_scheduler
+    stop_scheduler()
     await close_db()
 
 
@@ -103,6 +109,7 @@ api.include_router(credentials_router)
 api.include_router(datasets_router)
 api.include_router(trained_models_router)
 api.include_router(autogluon_router)
+api.include_router(automl_router)
 api.include_router(projects_router)
 api.include_router(usage_router)
 api.include_router(agents_router)
@@ -112,6 +119,7 @@ api.include_router(vectors_router)
 api.include_router(mfa_router)
 api.include_router(ui_projects_router)
 api.include_router(databases_router)
+api.include_router(webhooks_router)
 
 app.include_router(health_router)
 app.include_router(chat_ws_router)

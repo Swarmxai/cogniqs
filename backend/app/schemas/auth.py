@@ -14,11 +14,23 @@ class UserLogin(BaseModel):
     password: str
 
 
+class LoginMFAComplete(BaseModel):
+    email: EmailStr
+    password: str
+    code: str
+
+
+class MFARequiredResponse(BaseModel):
+    mfa_required: bool = True
+    email: str
+
+
 class UserResponse(BaseModel):
     id: int
     email: str
     name: str
     role: str
+    mfa_enabled: bool = False
 
     model_config = {"from_attributes": True}
 

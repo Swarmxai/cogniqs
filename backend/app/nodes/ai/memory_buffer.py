@@ -18,8 +18,28 @@ class MemoryBufferNode(BaseNode):
         is_ai_subnode=True,
         ai_output_type="ai_memory",
         properties=[
-            NodeProperty("Session ID Field", "sessionIdField", "string", default="session_id"),
-            NodeProperty("Max Messages", "maxMessages", "number", default=20),
+            NodeProperty(
+                "Session ID Field",
+                "sessionIdField",
+                "string",
+                default="session_id",
+                description="JSON field used to group conversation history.",
+            ),
+            NodeProperty(
+                "Window Size",
+                "maxMessages",
+                "number",
+                default=20,
+                description="Maximum messages kept in memory.",
+                type_options={"minValue": 1, "maxValue": 200},
+            ),
+            NodeProperty(
+                "Return Messages",
+                "returnMessages",
+                "boolean",
+                default=True,
+                description="Include prior turns when the agent runs.",
+            ),
         ],
     )
 

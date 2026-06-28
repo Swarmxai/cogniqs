@@ -40,6 +40,11 @@ class ExecuteRequest(BaseModel):
     trigger_data: dict[str, Any] = Field(default_factory=dict)
 
 
+class ExecuteNodeRequest(BaseModel):
+    node_id: str
+    trigger_data: dict[str, Any] = Field(default_factory=dict)
+
+
 class ExecutionResponse(BaseModel):
     id: int
     workflow_id: int

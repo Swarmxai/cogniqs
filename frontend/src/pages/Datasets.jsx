@@ -1,19 +1,27 @@
 import { useEffect, useState, useRef } from 'react'
-import { Database, Upload, Trash2, Eye, Link2, X, Table } from 'lucide-react'
+import { Database, Upload, Trash2, Eye, Link2, X, Table, Pencil, Sparkles, Folder } from 'lucide-react'
 import { api } from '../api/client'
 
 export default function Datasets() {
   const [datasets, setDatasets] = useState([])
+  const [folders, setFolders] = useState([])
+  const [folderFilter, setFolderFilter] = useState('')
   const [showUpload, setShowUpload] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [summary, setSummary] = useState(null)
   const [name, setName] = useState('')
+  const [uploadFolder, setUploadFolder] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [preview, setPreview] = useState(null)
   const [importUrl, setImportUrl] = useState('')
   const fileRef = useRef(null)
 
-  const load = () => api.getDatasets().then(setDatasets).catch((e) => setError(e.message))
-  useEffect(() => { load() }, [])
+  const load = () => {
+    api.getDatasets(folderFilter || undefined).then(setDatasets).catch((e) => setError(e.message))
+    api.getDatasetFolders().then(setFolders).catch(() => {})
+  }
+  useEffect(() => { load() }, [folderFilter])
 
   const upload = async (e) => {
     e.preventDefault()
@@ -22,8 +30,9 @@ export default function Datasets() {
     if (!file) { setError('Choose a file'); return }
     setBusy(true)
     try {
-      await api.uploadDataset(file, name || file.name)
-      setShowUpload(false); setName(''); if (fileRef.current) fileRef.current.value = ''
+      await api.uploadDataset(file, name || file.name, uploadFolder)
+      setShowUpload(false); setName(''); setUploadFolder('')
+      if (fileRef.current) fileRef.current.value = ''
       load()
     } catch (err) { setError(err.message) } finally { setBusy(false) }
   }
@@ -32,7 +41,7 @@ export default function Datasets() {
     e.preventDefault()
     setBusy(true); setError('')
     try {
-      await api.importDatasetUrl(importUrl, name || importUrl.split('/').pop())
+      await api.importDatasetUrl(importUrl, name || importUrl.split('/').pop(), uploadFolder)
       setShowUpload(false); setImportUrl(''); setName(''); load()
     } catch (err) { setError(err.message) } finally { setBusy(false) }
   }
@@ -49,6 +58,26 @@ export default function Datasets() {
     } catch (err) { setError(err.message) }
   }
 
+  const openEdit = (ds) => setEditing({ ...ds, target_column: ds.target_column || '', folder: ds.folder || '' })
+
+  const saveEdit = async (e) => {
+    e.preventDefault()
+    await api.updateDataset(editing.id, {
+      name: editing.name,
+      target_column: editing.target_column || null,
+      folder: editing.folder || '',
+    })
+    setEditing(null); load()
+  }
+
+  const doSummarize = async (ds) => {
+    setBusy(true)
+    try {
+      setSummary({ ds, data: await api.summarizeDataset(ds.id) })
+    } catch (err) { setError(err.message) }
+    finally { setBusy(false) }
+  }
+
   return (
     <div className="max-w-[1280px] mx-auto px-4 lg:px-6 py-8 animate-fade-up">
       <div className="flex items-center justify-between gap-4 mb-7">
@@ -63,17 +92,25 @@ export default function Datasets() {
 
       {error && <div className="mb-4 p-3 rounded-xl text-sm border" style={{ background: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)', color: '#f87171' }}>{error}</div>}
 
+      {folders.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          <button onClick={() => setFolderFilter('')} className={`cq-chip cursor-pointer ${!folderFilter ? 'ring-2 ring-[var(--primary)]' : ''}`}>All</button>
+          {folders.map((f) => (
+            <button key={f} onClick={() => setFolderFilter(f)} className={`cq-chip cursor-pointer flex items-center gap-1 ${folderFilter === f ? 'ring-2 ring-[var(--primary)]' : ''}`}>
+              <Folder className="w-3 h-3" /> {f}
+            </button>
+          ))}
+        </div>
+      )}
+
       {showUpload && (
         <div className="cq-card p-6 mb-6 space-y-4">
           <h3 className="font-semibold">New Dataset</h3>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dataset name (optional)" className="cq-input" />
+          <input value={uploadFolder} onChange={(e) => setUploadFolder(e.target.value)} placeholder="Folder (optional)" className="cq-input" />
           <form onSubmit={upload} className="space-y-3">
-            <input ref={fileRef} type="file" accept=".csv,.tsv,.parquet,.xlsx,.xls,.json,.jsonl"
-              className="w-full text-sm file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:text-white file:cursor-pointer text-muted"
-              style={{ }} />
-            <button type="submit" disabled={busy} className="cq-btn cq-btn-primary">
-              {busy ? 'Uploading…' : 'Upload File'}
-            </button>
+            <input ref={fileRef} type="file" accept=".csv,.tsv,.parquet,.xlsx,.xls,.json,.jsonl" className="w-full text-sm file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:text-white file:cursor-pointer text-muted" />
+            <button type="submit" disabled={busy} className="cq-btn cq-btn-primary">{busy ? 'Uploading…' : 'Upload File'}</button>
           </form>
           <div className="flex items-center gap-2 text-xs text-faint"><span className="flex-1 h-px bg-[var(--border)]" /> or import from URL <span className="flex-1 h-px bg-[var(--border)]" /></div>
           <form onSubmit={doImport} className="flex gap-2">
@@ -84,9 +121,22 @@ export default function Datasets() {
         </div>
       )}
 
+      {editing && (
+        <form onSubmit={saveEdit} className="cq-card p-6 mb-6 space-y-3">
+          <h3 className="font-semibold">Edit dataset</h3>
+          <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="cq-input" required />
+          <input value={editing.folder} onChange={(e) => setEditing({ ...editing, folder: e.target.value })} placeholder="Folder" className="cq-input" />
+          <input value={editing.target_column} onChange={(e) => setEditing({ ...editing, target_column: e.target.value })} placeholder="Target column (for AutoML)" className="cq-input" />
+          <div className="flex gap-2">
+            <button type="submit" className="cq-btn cq-btn-primary">Save</button>
+            <button type="button" onClick={() => setEditing(null)} className="cq-btn cq-btn-ghost">Cancel</button>
+          </div>
+        </form>
+      )}
+
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {datasets.map((d) => {
-          const summary = d.dataset_metadata?.summary || {}
+          const meta = d.dataset_metadata?.summary || {}
           return (
             <div key={d.id} className="cq-card cq-card-hover p-5">
               <div className="flex items-start justify-between">
@@ -94,18 +144,21 @@ export default function Datasets() {
                   <Database className="w-4 h-4" style={{ color: '#f59e0b' }} />
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => openPreview(d)} className="p-1.5 rounded-lg text-faint hover:bg-[var(--surface-2)] hover:text-[var(--ink)]" title="Preview"><Eye className="w-4 h-4" /></button>
+                  <button onClick={() => openPreview(d)} className="p-1.5 rounded-lg text-faint hover:bg-[var(--surface-2)]" title="Preview"><Eye className="w-4 h-4" /></button>
+                  <button onClick={() => doSummarize(d)} className="p-1.5 rounded-lg text-faint hover:bg-[var(--surface-2)]" title="Summarize"><Sparkles className="w-4 h-4" /></button>
+                  <button onClick={() => openEdit(d)} className="p-1.5 rounded-lg text-faint hover:bg-[var(--surface-2)]" title="Edit"><Pencil className="w-4 h-4" /></button>
                   <button onClick={() => remove(d.id)} className="p-1.5 rounded-lg text-faint hover:bg-red-500/10 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
               <h3 className="font-semibold mt-3 truncate">{d.name}</h3>
               <p className="text-sm text-muted truncate">{d.file_name}</p>
+              {d.folder && <p className="text-xs text-faint mt-1 flex items-center gap-1"><Folder className="w-3 h-3" /> {d.folder}</p>}
+              {d.target_column && <p className="text-xs text-faint">Target: {d.target_column}</p>}
               <div className="flex gap-3 mt-3 text-xs text-faint">
-                <span>{summary.row_count ?? '—'} rows</span>
-                <span>{summary.column_count ?? '—'} cols</span>
-                <span className={d.status === 'validated' ? 'text-emerald-500' : 'text-faint'}>{d.status}</span>
+                <span>{meta.row_count ?? '—'} rows</span>
+                <span>{meta.column_count ?? '—'} cols</span>
+                <span className={d.status === 'validated' ? 'text-emerald-500' : ''}>{d.status}</span>
               </div>
-              <p className="text-xs text-faint mt-2">ID {d.id} · use in a Dataset Config node</p>
             </div>
           )
         })}
@@ -135,6 +188,15 @@ export default function Datasets() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {summary && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSummary(null)}>
+          <div className="cq-card max-w-2xl w-full max-h-[80vh] overflow-auto p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold mb-3">EDA Summary · {summary.ds.name}</h3>
+            <pre className="text-xs font-mono cq-surface-2 p-4 rounded-xl overflow-auto">{JSON.stringify(summary.data, null, 2)}</pre>
           </div>
         </div>
       )}

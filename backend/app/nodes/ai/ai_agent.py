@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from app.engine.node_base import BaseNode, NodeDescription, NodeProperty
+from app.engine.node_base import BaseNode, NodeDescription, NodeProperty, NodePropertyOption
 from app.engine.node_registry import register_node
 from app.services.llm_service import LLMService
 
@@ -18,16 +18,42 @@ class AIAgentNode(BaseNode):
         inputs=["main", "ai_languageModel", "ai_tool", "ai_memory"],
         outputs=["main"],
         properties=[
-            NodeProperty("System Prompt", "systemPrompt", "string", default="You are a helpful AI assistant."),
-            NodeProperty("User Message", "userMessage", "string", default="{{ $json.message }}"),
-            NodeProperty("Max Iterations", "maxIterations", "number", default=5),
+            NodeProperty(
+                "System Prompt",
+                "systemPrompt",
+                "string",
+                default="You are a helpful AI assistant.",
+                description="Instructions that define agent behavior.",
+                type_options={"rows": 5},
+            ),
+            NodeProperty(
+                "User Message",
+                "userMessage",
+                "string",
+                default="{{ $json.message }}",
+                description="Expression or static text for the user turn.",
+                type_options={"rows": 3},
+            ),
+            NodeProperty(
+                "Max Iterations",
+                "maxIterations",
+                "number",
+                default=10,
+                description="Maximum tool-calling loops before stopping.",
+                type_options={"minValue": 1, "maxValue": 50},
+            ),
+            NodeProperty(
+                "Return Intermediate Steps",
+                "returnIntermediateSteps",
+                "boolean",
+                default=False,
+                description="Include tool call trace in the output.",
+            ),
         ],
     )
 
     async def execute(self, node_id: str, parameters: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         model_cfg = context.get("ai_language_model")
-        if not model_cfg:
-            model_cfg = context.get("ai_language_model")
         if isinstance(model_cfg, dict) and "model" in model_cfg:
             model_cfg = model_cfg["model"]
         if not model_cfg:
@@ -52,9 +78,10 @@ class AIAgentNode(BaseNode):
             if isinstance(t, dict) and t.get("schema"):
                 openai_tools.append(t["schema"])
 
-        max_iter = int(parameters.get("maxIterations", 5))
+        max_iter = int(parameters.get("maxIterations", 10))
         final_content = ""
         last_result: dict[str, Any] = {}
+        steps: list[dict[str, Any]] = []
 
         for _ in range(max_iter):
             last_result = await LLMService.chat(model_cfg, messages, tools=openai_tools or None)
@@ -71,6 +98,7 @@ class AIAgentNode(BaseNode):
                 tool_name = fn.get("name", "")
                 tool_args = json.loads(fn.get("arguments", "{}"))
                 tool_result = await _run_tool(tools, tool_name, tool_args)
+                steps.append({"tool": tool_name, "args": tool_args, "result": tool_result})
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tc.get("id", ""),
@@ -86,11 +114,14 @@ class AIAgentNode(BaseNode):
                 add_fn("user", str(user_msg))
                 add_fn("assistant", final_content)
 
-        return {
+        out: dict[str, Any] = {
             "response": final_content,
             "message": final_content,
             "usage": last_result.get("usage", {}),
         }
+        if parameters.get("returnIntermediateSteps"):
+            out["steps"] = steps
+        return out
 
 
 async def _run_tool(tools: list, name: str, args: dict) -> Any:

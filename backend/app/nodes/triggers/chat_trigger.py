@@ -15,7 +15,27 @@ class ChatTriggerNode(BaseNode):
         description="Start from a chat message with session support",
         outputs=["main"],
         properties=[
-            NodeProperty("Welcome Message", "welcomeMessage", "string", default="Hello! How can I help?"),
+            NodeProperty(
+                "Welcome Message",
+                "welcomeMessage",
+                "string",
+                default="Hello! How can I help?",
+                type_options={"rows": 2},
+            ),
+            NodeProperty(
+                "Session ID Field",
+                "sessionIdField",
+                "string",
+                default="session_id",
+                description="JSON field that identifies the chat session.",
+            ),
+            NodeProperty(
+                "Public",
+                "isPublic",
+                "boolean",
+                default=False,
+                description="Allow unauthenticated chat access when enabled.",
+            ),
         ],
     )
 

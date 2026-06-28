@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any, AsyncIterator
 
 import httpx
@@ -25,6 +26,34 @@ class LLMService:
     """Provider-agnostic LLM client."""
 
     @staticmethod
+    def _provider_api_key(provider: str, cfg: dict[str, Any]) -> str:
+        if cfg.get("apiKey"):
+            return str(cfg["apiKey"])
+        return {
+            "openai": settings.OPENAI_API_KEY,
+            "anthropic": settings.ANTHROPIC_API_KEY,
+            "gemini": settings.GOOGLE_API_KEY,
+            "groq": settings.GROQ_API_KEY,
+            "azure": settings.AZURE_OPENAI_API_KEY,
+            "mistral": settings.MISTRAL_API_KEY,
+            "deepseek": settings.DEEPSEEK_API_KEY,
+            "ollama": settings.OLLAMA_BASE_URL,
+        }.get(provider, "")
+
+    @staticmethod
+    def _demo_stub_response(messages: list[dict[str, str]], model_config: dict[str, Any]) -> dict[str, Any]:
+        last_user = next((m["content"] for m in reversed(messages) if m.get("role") == "user"), "")
+        exact = re.search(r"say exactly:\s*(.+)", last_user, re.IGNORECASE)
+        content = exact.group(1).strip() if exact else f"[Demo mode] {last_user[:500]}"
+        model = model_config.get("model", "demo-stub")
+        return {
+            "content": content,
+            "usage": {"prompt_tokens": 0, "completion_tokens": len(content.split()), "total_tokens": 0},
+            "model": model,
+            "provider": model_config.get("provider", "openai"),
+        }
+
+    @staticmethod
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
     async def chat(
         model_config: dict[str, Any],
@@ -34,6 +63,9 @@ class LLMService:
         stream: bool = False,
     ) -> dict[str, Any]:
         provider = model_config.get("provider", "openai")
+        if not settings.is_production and not LLMService._provider_api_key(provider, model_config):
+            logger.info("LLM demo stub — no API key for provider %s", provider)
+            return LLMService._demo_stub_response(messages, model_config)
         handler = {
             "openai": LLMService._call_openai,
             "anthropic": LLMService._call_anthropic,

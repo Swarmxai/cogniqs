@@ -122,6 +122,8 @@ class DatabaseQueryNode(BaseNode):
         inputs=["main"],
         outputs=["main"],
         properties=[
+            NodeProperty("Saved connection", "database_id", "number", default=None,
+                         description="Pick from Databases page, or enter URL below."),
             NodeProperty("Connection URL", "connection_url", "string", default="",
                          placeholder="postgresql+asyncpg://user:pass@host/db", required=True),
             NodeProperty("Query", "query", "code", default="SELECT 1"),
@@ -132,7 +134,12 @@ class DatabaseQueryNode(BaseNode):
         from sqlalchemy.ext.asyncio import create_async_engine
         from sqlalchemy import text
 
-        engine = create_async_engine(parameters.get("connection_url", ""))
+        url = parameters.get("connection_url", "")
+        db_id = parameters.get("database_id") or parameters.get("_databaseId")
+        if db_id and context.get("_database_urls"):
+            url = context["_database_urls"].get(str(db_id), url)
+
+        engine = create_async_engine(url)
         try:
             async with engine.connect() as conn:
                 result = await conn.execute(text(parameters.get("query", "SELECT 1")))

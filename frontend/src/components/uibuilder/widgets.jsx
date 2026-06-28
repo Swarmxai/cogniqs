@@ -1,4 +1,4 @@
-import { Type, Heading, Square, Image, TextCursorInput, Minus, MousePointerClick } from 'lucide-react'
+import { Type, Heading, Square, Image, TextCursorInput, Minus, MousePointerClick, ClipboardList } from 'lucide-react'
 
 // Widget catalog — each widget has a type, default props, and prop schema
 export const WIDGETS = {
@@ -54,6 +54,16 @@ export const WIDGETS = {
     defaults: { color: '#e7e5e4' },
     props: [{ name: 'color', type: 'color', label: 'Color' }],
   },
+  form: {
+    label: 'Form', icon: ClipboardList,
+    defaults: { title: 'Contact us', submitLabel: 'Submit', webhookUrl: '', fields: 'name,email,message' },
+    props: [
+      { name: 'title', type: 'text', label: 'Form title' },
+      { name: 'submitLabel', type: 'text', label: 'Submit button' },
+      { name: 'webhookUrl', type: 'text', label: 'Workflow webhook URL (from editor)' },
+      { name: 'fields', type: 'text', label: 'Fields (comma-separated)' },
+    ],
+  },
   container: {
     label: 'Spacer/Box', icon: Square,
     defaults: { height: 40, bg: 'transparent' },
@@ -72,7 +82,7 @@ export function newWidget(type) {
   }
 }
 
-export function WidgetView({ widget }) {
+export function WidgetView({ widget, onFormSubmit }) {
   const { type, props } = widget
   if (type === 'heading') {
     const Tag = props.level || 'h1'
@@ -98,6 +108,31 @@ export function WidgetView({ widget }) {
   }
   if (type === 'divider') {
     return <hr style={{ borderColor: props.color }} />
+  }
+  if (type === 'form') {
+    const fieldNames = (props.fields || 'name,email').split(',').map((s) => s.trim()).filter(Boolean)
+    return (
+      <form
+        className="space-y-3 p-4 border border-stone-200 rounded-xl"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          const fd = new FormData(e.target)
+          const body = Object.fromEntries(fieldNames.map((f) => [f, fd.get(f) || '']))
+          if (props.webhookUrl && onFormSubmit) {
+            await onFormSubmit(props.webhookUrl, body)
+          }
+        }}
+      >
+        {props.title && <h3 className="font-semibold">{props.title}</h3>}
+        {fieldNames.map((f) => (
+          <label key={f} className="block text-sm">
+            <span className="capitalize">{f}</span>
+            <input name={f} required className="mt-1 w-full px-3 py-2 rounded-lg border border-stone-300 bg-transparent" />
+          </label>
+        ))}
+        <button type="submit" className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm">{props.submitLabel || 'Submit'}</button>
+      </form>
+    )
   }
   if (type === 'container') {
     return <div style={{ height: props.height, background: props.bg }} />

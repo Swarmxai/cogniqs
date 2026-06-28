@@ -159,6 +159,15 @@ async def create_database(
     return _to_response(cred, data)
 
 
+@router.get("/{database_id}/meta")
+async def database_meta(database_id: int, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
+    """Return connection URL for workflow node autofill (owner only)."""
+    cred = await _get_owned(db, database_id, user.id)
+    data = decrypt_credential(cred)
+    db_type = cred.type if cred.type != "database" else "postgresql"
+    return {"id": cred.id, "name": cred.name, "connection_url": _build_url(db_type, data)}
+
+
 @router.post("/{database_id}/test")
 async def test_database(
     database_id: int, user: CurrentUser, db: AsyncSession = Depends(get_db)

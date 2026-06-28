@@ -18,7 +18,33 @@ class WebhookTriggerNode(BaseNode):
             NodeProperty("HTTP Method", "method", "options", default="POST", options=[
                 NodePropertyOption("POST", "POST"),
                 NodePropertyOption("GET", "GET"),
+                NodePropertyOption("PUT", "PUT"),
+                NodePropertyOption("PATCH", "PATCH"),
             ]),
+            NodeProperty(
+                "Path",
+                "path",
+                "string",
+                default="",
+                placeholder="/hooks/my-workflow",
+                description="Optional path suffix for this webhook (appended to workflow URL).",
+            ),
+            NodeProperty(
+                "Response Code",
+                "responseCode",
+                "number",
+                default=200,
+                description="HTTP status returned to the caller.",
+                type_options={"minValue": 100, "maxValue": 599},
+            ),
+            NodeProperty(
+                "Response Body",
+                "responseBody",
+                "string",
+                default='{"ok": true}',
+                description="JSON or text returned to the webhook caller.",
+                type_options={"rows": 3},
+            ),
         ],
     )
 

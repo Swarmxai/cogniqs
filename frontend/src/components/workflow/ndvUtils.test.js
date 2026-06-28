@@ -23,4 +23,14 @@ describe('isPropertyVisible', () => {
     expect(isPropertyVisible(prop, { enabled: true })).toBe(true)
     expect(isPropertyVisible(prop, { enabled: false })).toBe(false)
   })
+
+  it('hides secret fields when credential is selected', () => {
+    const prop = { name: 'apiKey' }
+    expect(isPropertyVisible(prop, { _credentialId: 1 })).toBe(false)
+    expect(isPropertyVisible(prop, {})).toBe(true)
+  })
+
+  it('respects typeOptions.hidden', () => {
+    expect(isPropertyVisible({ name: 'x', typeOptions: { hidden: true } }, {})).toBe(false)
+  })
 })

@@ -12,7 +12,7 @@ from app.core.security import (
 )
 from app.database import get_db
 from app.models.user import User
-from app.schemas.auth import TokenResponse, UserCreate, UserLogin, UserResponse
+from app.schemas.auth import LoginMFAComplete, MFARequiredResponse, TokenResponse, UserCreate, UserLogin, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -32,12 +32,32 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)) -> Toke
     )
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(body: UserLogin, db: AsyncSession = Depends(get_db)) -> TokenResponse:
+@router.post("/login")
+async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     if not user or not verify_password(body.password, user.hashed_password):
         raise ValidationError("Invalid email or password")
+    if user.mfa_enabled:
+        return MFARequiredResponse(email=user.email)
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+        user=UserResponse.model_validate(user),
+    )
+
+
+@router.post("/login/mfa", response_model=TokenResponse)
+async def login_mfa(body: LoginMFAComplete, db: AsyncSession = Depends(get_db)) -> TokenResponse:
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+    if not user or not verify_password(body.password, user.hashed_password):
+        raise ValidationError("Invalid email or password")
+    if not user.mfa_enabled or not user.mfa_secret:
+        raise ValidationError("MFA is not enabled for this account")
+    from app.api.mfa import _pyotp
+    if not _pyotp().TOTP(user.mfa_secret).verify(body.code):
+        raise ValidationError("Invalid authenticator code")
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
