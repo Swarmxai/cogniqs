@@ -1,0 +1,90 @@
+{
+  "agent_1_default": {
+    "history": [
+      {
+        "role": "user",
+        "content": "hey"
+      },
+      {
+        "role": "assistant",
+        "content": "Hey there! How can I help you today?"
+      },
+      {
+        "role": "user",
+        "content": "hey"
+      },
+      {
+        "role": "assistant",
+        "content": "Hey again! What's on your mind, or how can I help you out today?"
+      }
+    ]
+  },
+  "agent_2_default": {
+    "history": [
+      {
+        "role": "user",
+        "content": "hey"
+      },
+      {
+        "role": "assistant",
+        "content": "Hey there! How can I help you today?"
+      },
+      {
+        "role": "user",
+        "content": "hey"
+      },
+      {
+        "role": "assistant",
+        "content": "Hey again! What's up? How can I help you today?"
+      }
+    ]
+  },
+  "agent_6_default": {
+    "history": [
+      {
+        "role": "user",
+        "content": "hey"
+      },
+      {
+        "role": "assistant",
+        "content": "Hey there! How can I help you today? \ud83d\ude0a"
+      },
+      {
+        "role": "user",
+        "content": "hey"
+      },
+      {
+        "role": "assistant",
+        "content": "Hey! How's it going? Anything I can do for you? \ud83d\ude0a"
+      }
+    ]
+  },
+  "agent_7_default": {
+    "history": [
+      {
+        "role": "user",
+        "content": "hey"
+      },
+      {
+        "role": "assistant",
+        "content": "Hey there! How can I help you today?"
+      },
+      {
+        "role": "user",
+        "content": "hello"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! What can I help you with today?"
+      },
+      {
+        "role": "user",
+        "content": "hello am I audible"
+      },
+      {
+        "role": "assistant",
+        "content": "As a text-based AI, I don't have the ability to hear audio. I can, however, read anything you type!\n\nSo yes, I can read your messages clearly. How can I assist you today?"
+      }
+    ]
+  }
+}

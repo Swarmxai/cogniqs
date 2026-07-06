@@ -19,6 +19,55 @@ const LANGUAGES = [
   { value: 'ar', label: 'Arabic' },
 ]
 
+const DEFAULT_MODELS = {
+  openai: 'gpt-4o-mini',
+  anthropic: 'claude-3-5-sonnet-20241022',
+  gemini: 'gemini-2.5-flash',
+  groq: 'llama-3.3-70b-versatile',
+  mistral: 'mistral-small-latest',
+  deepseek: 'deepseek-chat',
+  ollama: 'llama3.2',
+  azure: 'gpt-4o-mini',
+}
+
+const PROVIDER_MODELS = {
+  openai: [
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+  ],
+  anthropic: [
+    { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
+    { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+  ],
+  gemini: [
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  ],
+  groq: [
+    { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
+    { value: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B' },
+    { value: 'gemma2-9b-it', label: 'Gemma 2 9B' },
+  ],
+  mistral: [
+    { value: 'mistral-small-latest', label: 'Mistral Small' },
+    { value: 'mistral-large-latest', label: 'Mistral Large' },
+    { value: 'codestral-latest', label: 'Codestral' },
+  ],
+  deepseek: [
+    { value: 'deepseek-chat', label: 'DeepSeek Chat' },
+    { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner' },
+  ],
+  ollama: [
+    { value: 'llama3.2', label: 'Llama 3.2' },
+    { value: 'llama3', label: 'Llama 3' },
+    { value: 'mistral', label: 'Mistral' },
+  ],
+}
+
 const emptyForm = () => ({
   name: '',
   agent_type: 'text',
@@ -45,10 +94,70 @@ export default function AIAgent() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const endRef = useRef(null)
 
+  const speakText = (text, lang = 'en') => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = lang
+      window.speechSynthesis.speak(utterance)
+    }
+  }
+
+  const toggleSpeech = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser.')
+      return
+    }
+    if (isListening) {
+      if (window._recognition) {
+        window._recognition.stop()
+      }
+      setIsListening(false)
+      return
+    }
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = active?.config?.voice?.language || 'en'
+    recognition.onstart = () => {
+      setIsListening(true)
+    }
+    recognition.onerror = (e) => {
+      console.error('Speech recognition error:', e.error, e)
+      setIsListening(false)
+      if (e.error === 'not-allowed') {
+        alert('Microphone permission was denied. Please allow microphone access in your browser address bar/settings.')
+      } else if (e.error === 'no-speech') {
+        // Silent fail for no speech is standard, but we can alert the user
+        alert('No speech was detected. Please try again and speak clearly.')
+      } else if (e.error === 'network') {
+        alert('Network error: Speech recognition requires an active internet connection.')
+      } else {
+        alert(`Speech recognition failed: ${e.error}`)
+      }
+    }
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript
+      setInput(transcript)
+      send(transcript)
+    }
+    window._recognition = recognition
+    recognition.start()
+  }
+
   const load = () => api.getAgents().then(setAgents).catch(console.error)
-  useEffect(() => { load(); api.getCredentials().then(setCredentials).catch(() => {}) }, [])
+  useEffect(() => { load(); api.getCredentials().then((data) => {
+    console.log("Credentials:", data);
+    setCredentials(data);
+  }).catch(console.error);
+}, [])
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
   const startCreate = () => { setForm(emptyForm()); setStep('type') }
@@ -74,6 +183,10 @@ export default function AIAgent() {
         },
       }),
     }
+    console.log("Creating agent with credential:", form.credential_id);
+
+    console.log("FORM =", form);
+    console.log("credential_id =", form.credential_id);
     await api.createAgent({
       name: form.name,
       system_prompt: form.system_prompt,
@@ -112,7 +225,7 @@ export default function AIAgent() {
     e.preventDefault()
     if (!editing) return
     const a = agents.find((x) => x.id === editing.id)
-    await api.updateAgent(editing.id, {
+    const updated = await api.updateAgent(editing.id, {
       name: editing.name,
       description: a?.description || '',
       system_prompt: editing.system_prompt,
@@ -123,6 +236,7 @@ export default function AIAgent() {
       published: a?.published || false,
     })
     setEditing(null)
+    setActive(updated)
     load()
   }
 
@@ -132,14 +246,18 @@ export default function AIAgent() {
     load()
   }
 
-  const send = async () => {
-    if (!input.trim() || !active) return
-    const msg = input
+  const send = async (textOverride = null) => {
+    const msg = textOverride !== null ? textOverride : input
+    if (!msg.trim() || !active) return
     setMessages((m) => [...m, { role: 'user', content: msg }])
-    setInput(''); setBusy(true)
+    setInput('')
+    setBusy(true)
     try {
       const res = await api.chatAgent(active.id, msg)
       setMessages((m) => [...m, { role: 'assistant', content: res.reply }])
+      if (agentType(active) === 'voice' && res.reply) {
+        speakText(res.reply, active.config?.voice?.language || 'en')
+      }
     } catch (err) {
       setMessages((m) => [...m, { role: 'assistant', content: `Error: ${err.message}` }])
     } finally { setBusy(false) }
@@ -213,20 +331,57 @@ export default function AIAgent() {
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="text-xs text-faint">
               LLM provider
-              <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} className="cq-input mt-1">
+              <select
+                value={form.provider}
+                onChange={(e) => {
+                  const p = e.target.value
+                  setForm({ ...form, provider: p, model: DEFAULT_MODELS[p] || '' })
+                }}
+                className="cq-input mt-1"
+              >
                 {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
             <label className="text-xs text-faint">
               Model
-              <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Model" className="cq-input mt-1" />
+              <input
+                list="create-model-options"
+                value={form.model}
+                onChange={(e) => setForm({ ...form, model: e.target.value })}
+                placeholder="Model"
+                className="cq-input mt-1"
+              />
+              <datalist id="create-model-options">
+                {(PROVIDER_MODELS[form.provider] || []).map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </datalist>
             </label>
             <label className="text-xs text-faint sm:col-span-2">
               API credential (optional)
-              <select value={form.credential_id ?? ''} onChange={(e) => setForm({ ...form, credential_id: e.target.value ? Number(e.target.value) : null })} className="cq-input mt-1">
-                <option value="">Platform default</option>
-                {credentials.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.type})</option>)}
-              </select>
+              <p>Credentials loaded: {credentials.length}</p>
+              <select
+  value={form.credential_id ?? ""}
+  onChange={(e) => {
+    console.log("Selected value:", e.target.value);
+
+    setForm({
+      ...form,
+      credential_id: e.target.value
+        ? Number(e.target.value)
+        : null,
+    });
+  }}
+  className="cq-input mt-1"
+>
+  <option value="">Platform default</option>
+
+  {credentials.map((c) => (
+    <option key={c.id} value={c.id}>
+      {c.name} ({c.type})
+    </option>
+  ))}
+</select>
             </label>
           </div>
 
@@ -281,8 +436,8 @@ export default function AIAgent() {
             const type = agentType(a)
             const voice = type === 'voice'
             return (
-              <button key={a.id} onClick={() => selectAgent(a)}
-                className={`w-full text-left p-4 rounded-2xl border transition-all ${active?.id === a.id ? 'border-[var(--primary)] neon-ring' : 'border-token cq-card-hover'} cq-card`}>
+              <div key={a.id} onClick={() => selectAgent(a)} role="button" tabIndex={0}
+                className={`w-full text-left p-4 rounded-2xl border transition-all cursor-pointer ${active?.id === a.id ? 'border-[var(--primary)] neon-ring' : 'border-token cq-card-hover'} cq-card`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
@@ -300,9 +455,8 @@ export default function AIAgent() {
                 </div>
                 <div className="flex gap-1 mt-2">
                   <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(a) }} className="text-xs text-faint hover:text-[var(--ink)] flex items-center gap-1"><Pencil className="w-3 h-3" /> Edit</button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); publish(a.id) }} className="text-xs text-faint hover:text-[var(--ink)] flex items-center gap-1"><Globe className="w-3 h-3" /> Publish</button>
                 </div>
-              </button>
+              </div>
             )
           })}
           {agents.length === 0 && <p className="text-sm text-muted p-4">No agents yet</p>}
@@ -315,10 +469,27 @@ export default function AIAgent() {
               <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="cq-input" required />
               <textarea value={editing.system_prompt} onChange={(e) => setEditing({ ...editing, system_prompt: e.target.value })} rows={4} className="cq-input" />
               <div className="grid grid-cols-2 gap-2">
-                <select value={editing.provider} onChange={(e) => setEditing({ ...editing, provider: e.target.value })} className="cq-input">
+                <select
+                  value={editing.provider}
+                  onChange={(e) => {
+                    const p = e.target.value
+                    setEditing({ ...editing, provider: p, model: DEFAULT_MODELS[p] || '' })
+                  }}
+                  className="cq-input"
+                >
                   {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
-                <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="cq-input" />
+                <input
+                  list="edit-model-options"
+                  value={editing.model}
+                  onChange={(e) => setEditing({ ...editing, model: e.target.value })}
+                  className="cq-input"
+                />
+                <datalist id="edit-model-options">
+                  {(PROVIDER_MODELS[editing.provider] || []).map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </datalist>
               </div>
               <select value={editing.credential_id ?? ''} onChange={(e) => setEditing({ ...editing, credential_id: e.target.value ? Number(e.target.value) : null })} className="cq-input">
                 <option value="">Platform default credential</option>
@@ -336,7 +507,7 @@ export default function AIAgent() {
                   ? <Mic className="w-4 h-4" style={{ color: '#8b5cf6' }} />
                   : <Settings className="w-4 h-4 text-faint" />}
                 <span className="font-medium">{active.name}</span>
-                <span className="text-xs text-faint">{active.provider} · {active.model}</span>
+                <span className="text-xs text-faint">{active.provider} · {active.model} · Persistent Sessions (File-fallback)</span>
                 <div className="ml-auto flex gap-1">
                   <button type="button" onClick={() => openEdit(active)} className="cq-btn cq-btn-ghost !px-2 !py-1 !text-xs"><Pencil className="w-3 h-3" /> Edit</button>
                   <button type="button" data-testid="agent-publish" onClick={() => publish(active.id)} className="cq-btn cq-btn-ghost !px-2 !py-1 !text-xs"><Globe className="w-3 h-3" /> {active.published ? 'Republish' : 'Publish'}</button>
@@ -347,7 +518,7 @@ export default function AIAgent() {
                 <div className="px-4 py-2 text-xs text-faint border-b border-token flex items-center gap-2"
                   style={{ background: 'var(--surface-2)' }}>
                   <AudioLines className="w-3.5 h-3.5" style={{ color: '#8b5cf6' }} />
-                  Voice settings saved — test conversation as text below (full audio runtime coming soon).
+                  Voice settings saved — basic browser STT (microphone below) & TTS (speech synthesis) enabled.
                 </div>
               )}
 
@@ -361,10 +532,22 @@ export default function AIAgent() {
                 {busy && <p className="text-sm text-faint">Thinking…</p>}
                 <div ref={endRef} />
               </div>
-              <div className="p-3 border-t border-token flex gap-2">
+              <div className="p-3 border-t border-token flex gap-2 items-center">
+                {agentType(active) === 'voice' && (
+                  <button
+                    onClick={toggleSpeech}
+                    type="button"
+                    className={`cq-btn !p-2 rounded-xl border ${
+                      isListening ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse' : 'cq-btn-ghost text-faint hover:text-[var(--ink)]'
+                    }`}
+                    title="Speak using browser microphone"
+                  >
+                    <Mic className="w-5 h-5" />
+                  </button>
+                )}
                 <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()}
                   data-testid="agent-chat-input"
-                  placeholder={agentType(active) === 'voice' ? 'Type to test your voice agent…' : 'Message your agent…'} className="cq-input flex-1" />
+                  placeholder={agentType(active) === 'voice' ? 'Type or speak to test your voice agent…' : 'Message your agent…'} className="cq-input flex-1" />
                 <button onClick={send} disabled={busy} data-testid="agent-chat-send" className="cq-btn cq-btn-primary !px-4"><Send className="w-4 h-4" /></button>
               </div>
             </>

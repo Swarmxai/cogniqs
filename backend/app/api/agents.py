@@ -11,10 +11,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.credentials import decrypt_credential
 from app.core.deps import CurrentUser
-from app.core.errors import NotFoundError
+from app.core.errors import NotFoundError, UnauthorizedError, ApplicationError
 from app.database import get_db
 from app.models.agent import Agent
+from app.models.credential import Credential
 from app.services.llm_service import LLMService
 from app.services import session_store
 
@@ -51,11 +53,37 @@ async def list_agents(user: CurrentUser, db: AsyncSession = Depends(get_db)) -> 
     return [a.to_dict() for a in result.scalars()]
 
 
+def sanitize_model(provider: str, model: str) -> str:
+    provider = provider.lower()
+    model_lower = model.lower()
+    defaults = {
+        "openai": "gpt-4o-mini",
+        "anthropic": "claude-3-5-sonnet-20241022",
+        "gemini": "gemini-2.5-flash",
+        "groq": "llama-3.3-70b-versatile",
+        "mistral": "mistral-small-latest",
+        "deepseek": "deepseek-chat",
+        "ollama": "llama3.2",
+        "azure": "gpt-4o-mini",
+    }
+    if provider == "gemini" and "gemini" not in model_lower:
+        return defaults["gemini"]
+    if provider == "openai" and not (model_lower.startswith("gpt") or model_lower.startswith("o1") or model_lower.startswith("o3")):
+        return defaults["openai"]
+    if provider == "anthropic" and "claude" not in model_lower:
+        return defaults["anthropic"]
+    return model
+
+
 @router.post("")
 async def create_agent(body: AgentBody, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
+    print("BODY =", body)
+    print("credential_id =", body.credential_id)
+    print(body.model_dump())
+    model = sanitize_model(body.provider, body.model)
     agent = Agent(
         name=body.name, description=body.description, system_prompt=body.system_prompt,
-        provider=body.provider, model=body.model, credential_id=body.credential_id,
+        provider=body.provider, model=model, credential_id=body.credential_id,
         config=json.dumps(body.config), published=body.published, owner_id=user.id,
     )
     db.add(agent)
@@ -83,8 +111,8 @@ async def update_agent(agent_id: int, body: AgentBody, user: CurrentUser, db: As
     agent.name = body.name
     agent.description = body.description
     agent.system_prompt = body.system_prompt
-    agent.provider = body.provider
-    agent.model = body.model
+    agent.provider  = body.provider
+    agent.model = sanitize_model(body.provider, body.model)
     agent.credential_id = body.credential_id
     agent.config = json.dumps(body.config)
     agent.published = body.published
@@ -120,14 +148,36 @@ async def public_agent_chat(agent_id: int, body: PublicAgentChatBody, db: AsyncS
     if not agent:
         raise NotFoundError("Agent not found or not published")
     cfg = json.loads(agent.config or "{}")
-    if cfg.get("publish_token") != body.token:
-        raise NotFoundError("Invalid publish token")
+    if not body.token or cfg.get("publish_token") != body.token:
+        raise UnauthorizedError("Invalid or missing embed token")
     session_key = f"agent_{agent_id}_{body.session_id}"
     history = await session_store.get_history(session_key)
     messages = [{"role": "system", "content": agent.system_prompt}]
     messages.extend(history)
     messages.append({"role": "user", "content": body.message})
-    result_llm = await LLMService.chat({"provider": agent.provider, "model": agent.model}, messages)
+    
+    model_config = {
+        "provider": agent.provider,
+        "model": agent.model,
+    }
+    if agent.credential_id:
+        cred_result = await db.execute(
+            select(Credential).where(
+                Credential.id == agent.credential_id,
+                Credential.owner_id == agent.owner_id,
+            )
+        )
+        cred = cred_result.scalar_one_or_none()
+        if cred:
+            data = decrypt_credential(cred)
+            if data.get("apiKey"):
+                model_config["apiKey"] = data["apiKey"]
+
+    try:
+        result_llm = await LLMService.chat(model_config, messages)
+    except Exception as exc:
+        raise ApplicationError(str(exc))
+
     reply = result_llm.get("content", "")
     await session_store.add_message(session_key, "user", body.message)
     await session_store.add_message(session_key, "assistant", reply)
@@ -135,8 +185,14 @@ async def public_agent_chat(agent_id: int, body: PublicAgentChatBody, db: AsyncS
 
 
 @router.post("/{agent_id}/chat")
-async def chat_with_agent(agent_id: int, body: AgentChatBody, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
+async def chat_with_agent(
+    agent_id: int,
+    body: AgentChatBody,
+    user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
     agent = await _get_owned(db, agent_id, user.id)
+    print("Agent credential_id:", agent.credential_id)
     session_key = f"agent_{agent_id}_{body.session_id}"
     history = await session_store.get_history(session_key)
 
@@ -144,10 +200,37 @@ async def chat_with_agent(agent_id: int, body: AgentChatBody, user: CurrentUser,
     messages.extend(history)
     messages.append({"role": "user", "content": body.message})
 
-    result = await LLMService.chat(
-        {"provider": agent.provider, "model": agent.model}, messages
-    )
+    model_config = {
+        "provider": agent.provider,
+        "model": agent.model,
+    }
+    print("Agent credential_id:", agent.credential_id)
+    if agent.credential_id:
+        cred_result = await db.execute(
+            select(Credential).where(
+                Credential.id == agent.credential_id,
+                Credential.owner_id == user.id,
+            )
+        )
+        cred = cred_result.scalar_one_or_none()
+
+        if cred:
+            data = decrypt_credential(cred)
+            print("Decrypted credential:", data)
+
+            if data.get("apiKey"):
+                model_config["apiKey"] = data["apiKey"]
+
+    try:
+        result = await LLMService.chat(model_config, messages)
+    except Exception as exc:
+        raise ApplicationError(str(exc))
+
     reply = result.get("content", "")
     await session_store.add_message(session_key, "user", body.message)
     await session_store.add_message(session_key, "assistant", reply)
-    return {"reply": reply, "usage": result.get("usage", {})}
+
+    return {
+        "reply": reply,
+        "usage": result.get("usage", {}),
+    }

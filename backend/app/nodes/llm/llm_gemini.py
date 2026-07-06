@@ -22,10 +22,10 @@ class GeminiNode(BaseNode):
         credentials=provider_credentials("google", "gemini"),
         properties=[
             api_key_prop(placeholder="Leave empty to use Credential Vault or GOOGLE_API_KEY"),
-            NodeProperty("Model", "model", "options", default="gemini-1.5-flash", options=[
-                NodePropertyOption("Gemini 1.5 Flash", "gemini-1.5-flash"),
-                NodePropertyOption("Gemini 1.5 Pro", "gemini-1.5-pro"),
+            NodeProperty("Model", "model", "options", default="gemini-2.5-flash", options=[
+                NodePropertyOption("Gemini 2.5 Flash", "gemini-2.5-flash"),
                 NodePropertyOption("Gemini 2.0 Flash", "gemini-2.0-flash"),
+                NodePropertyOption("Gemini 2.5 Pro", "gemini-2.5-pro"),
             ]),
             *temperature_max_props(),
         ],
@@ -34,7 +34,7 @@ class GeminiNode(BaseNode):
     async def execute(self, node_id: str, parameters: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         return {"model": {
             "provider": "gemini",
-            "model": parameters.get("model", "gemini-1.5-flash"),
+            "model": parameters.get("model", "gemini-2.5-flash"),
             "temperature": float(parameters.get("temperature", 0.7)),
             "maxTokens": int(parameters.get("maxTokens", 4096)),
             "apiKey": resolve_api_key(parameters, context, settings.GOOGLE_API_KEY),

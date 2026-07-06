@@ -9,10 +9,35 @@ from typing import Any
 
 from app.config import settings
 
+import os
+
 logger = logging.getLogger(__name__)
 
 _redis_client = None
-_memory: dict[str, dict[str, Any]] = {}
+_MEMORY_FILE = "sessions.json"
+
+
+def _load_memory() -> dict[str, dict[str, Any]]:
+    if os.path.exists(_MEMORY_FILE):
+        try:
+            with open(_MEMORY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as exc:
+            logger.warning("Failed to load memory sessions from file: %s", exc)
+    return {}
+
+
+_memory: dict[str, dict[str, Any]] = _load_memory()
+
+
+def _save_memory() -> None:
+    try:
+        with open(_MEMORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(_memory, f, indent=2)
+    except Exception as exc:
+        logger.warning("Failed to save memory sessions to file: %s", exc)
+
+
 _streams: dict[str, asyncio.Queue] = {}
 
 
@@ -55,6 +80,7 @@ async def add_message(session_id: str, role: str, content: str) -> None:
         await r.setex(_key(session_id), settings.SESSION_TTL_SECONDS, json.dumps(history))
     else:
         _memory.setdefault(session_id, {})["history"] = history
+        _save_memory()
 
 
 async def clear_session(session_id: str) -> None:
@@ -62,6 +88,7 @@ async def clear_session(session_id: str) -> None:
     if r:
         await r.delete(_key(session_id))
     _memory.pop(session_id, None)
+    _save_memory()
 
 
 def get_stream_queue(session_id: str) -> asyncio.Queue:

@@ -8,7 +8,7 @@ import re
 from typing import Any, AsyncIterator
 
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
 from app.config import settings
 
@@ -19,7 +19,16 @@ COST_PER_1K = {
     "gpt-4o-mini": {"prompt": 0.00015, "completion": 0.0006},
     "claude-3-5-sonnet": {"prompt": 0.003, "completion": 0.015},
     "gemini-1.5-flash": {"prompt": 0.000075, "completion": 0.0003},
+    "gemini-2.0-flash": {"prompt": 0.000075, "completion": 0.0003},
+    "gemini-2.5-flash": {"prompt": 0.000075, "completion": 0.0003},
 }
+
+
+def is_transient_error(exception: Exception) -> bool:
+    if isinstance(exception, httpx.HTTPStatusError):
+        # Do not retry on client-side errors (400, 401, 403, 404)
+        return exception.response.status_code not in (400, 401, 403, 404)
+    return isinstance(exception, httpx.HTTPError)
 
 
 class LLMService:
@@ -54,7 +63,12 @@ class LLMService:
         }
 
     @staticmethod
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    @retry(
+        retry=retry_if_exception(is_transient_error),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(min=1, max=10),
+        reraise=True,
+    )
     async def chat(
         model_config: dict[str, Any],
         messages: list[dict[str, str]],
@@ -63,9 +77,11 @@ class LLMService:
         stream: bool = False,
     ) -> dict[str, Any]:
         provider = model_config.get("provider", "openai")
-        if not settings.is_production and not LLMService._provider_api_key(provider, model_config):
-            logger.info("LLM demo stub — no API key for provider %s", provider)
-            return LLMService._demo_stub_response(messages, model_config)
+
+        if not LLMService._provider_api_key(provider, model_config):
+            env_name = "GOOGLE_API_KEY" if provider == "gemini" else f"{provider.upper()}_API_KEY"
+            raise ValueError(f"API key is missing for provider '{provider}'. Please configure a Vault Credential or set the environment variable '{env_name}'.")
+
         handler = {
             "openai": LLMService._call_openai,
             "anthropic": LLMService._call_anthropic,
@@ -78,7 +94,26 @@ class LLMService:
         }.get(provider)
         if not handler:
             raise ValueError(f"Unsupported provider: {provider}")
-        return await handler(model_config, messages, tools=tools, stream=stream)
+        try:
+            return await handler(model_config, messages, tools=tools, stream=stream)
+        except httpx.HTTPStatusError as exc:
+            try:
+                body = exc.response.json()
+                msg = ""
+                if isinstance(body, dict):
+                    if "error" in body:
+                        err = body["error"]
+                        if isinstance(err, dict):
+                            msg = err.get("message") or err.get("message_str") or ""
+                        else:
+                            msg = str(err)
+                    elif "message" in body:
+                        msg = body["message"]
+                if not msg:
+                    msg = exc.response.text or str(exc)
+            except Exception:
+                msg = exc.response.text or str(exc)
+            raise ValueError(f"{provider.title()} API error: {msg}")
 
     @staticmethod
     async def _call_openai(
@@ -95,7 +130,11 @@ class LLMService:
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json=payload,
             )
-            resp.raise_for_status()
+            print("Status:", resp.status_code)
+            print("Body:", resp.text)
+            if resp.status_code != 200:
+                print(resp.text)
+                resp.raise_for_status()
             data = resp.json()
         choice = data["choices"][0]["message"]
         usage = data.get("usage", {})
@@ -155,8 +194,19 @@ class LLMService:
     @staticmethod
     async def _call_gemini(cfg: dict, messages: list, *, tools=None, stream=False) -> dict[str, Any]:
         api_key = cfg.get("apiKey") or settings.GOOGLE_API_KEY
-        model = cfg.get("model", "gemini-1.5-flash")
-        contents = [{"role": "user" if m["role"] != "assistant" else "model", "parts": [{"text": m["content"]}]} for m in messages if m["role"] != "system"]
+        model = cfg.get("model", "gemini-2.5-flash")
+        
+        # Ensure Gemini roles alternate: user, model, user, model...
+        contents = []
+        for m in messages:
+            if m["role"] == "system":
+                continue
+            role = "user" if m["role"] != "assistant" else "model"
+            if contents and contents[-1]["role"] == role:
+                contents[-1]["parts"][0]["text"] += "\n" + m["content"]
+            else:
+                contents.append({"role": role, "parts": [{"text": m["content"]}]})
+
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(url, json={"contents": contents})
@@ -251,6 +301,16 @@ class LLMService:
     async def stream_chat(model_config: dict[str, Any], messages: list[dict[str, str]]):
         """Yield token strings from OpenAI-compatible streaming APIs."""
         provider = model_config.get("provider", "openai")
+        if not settings.is_production and not LLMService._provider_api_key(provider, model_config):
+            # Fall back to standard chat for demo stub response
+            result = await LLMService.chat(model_config, messages)
+            yield result.get("content", "")
+            return
+
+        if not LLMService._provider_api_key(provider, model_config):
+            env_name = "GOOGLE_API_KEY" if provider == "gemini" else f"{provider.upper()}_API_KEY"
+            raise ValueError(f"API key is missing for provider '{provider}'. Please configure a Vault Credential or set the environment variable '{env_name}'.")
+
         if provider in ("openai", "groq", "azure", "deepseek", "mistral"):
             async for token in LLMService._stream_openai_compat(model_config, messages, provider):
                 yield token
