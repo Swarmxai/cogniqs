@@ -21,6 +21,7 @@ import {
   Scissors,
   Search,
   MessageSquare,
+  MessageCircle,
   Zap,
   StickyNote,
   Mail,
@@ -60,6 +61,8 @@ import {
   Gem,
   Cloud,
   Wind,
+  Box,
+  Eye,
 } from 'lucide-react';
 
 /* ─── Custom brand SVG icons ─────────────────────────────────────────────── */
@@ -192,9 +195,11 @@ function MicrosoftOutlookIcon({ size = 18 }) {
 
 const ICON_MAP = {
   'play-circle': Play,
+  play: Play,
   'mouse-pointer-2': MousePointer2,
   globe: Globe,
   'edit-3': Pencil,
+  edit: Pencil,
   'git-branch': GitBranch,
   code: Code,
   shuffle: Shuffle,
@@ -207,7 +212,10 @@ const ICON_MAP = {
   bot: Bot,
   brain: BrainCircuit,
   'message-square': MessageSquare,
+  'message-circle': MessageCircle,
   cpu: Cpu,
+  eye: Eye,
+  box: Box,
 
   wrench: Wrench,
   calculator: Calculator,
@@ -219,6 +227,7 @@ const ICON_MAP = {
   'file-text': FileText,
   scissors: Scissors,
   search: Search,
+  'bar-chart': BarChart3,
   'bar-chart-2': BarChart3,
   'line-chart': LineChart,
   'trending-up': TrendingUp,

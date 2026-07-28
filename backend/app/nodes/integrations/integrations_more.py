@@ -16,6 +16,7 @@ class RespondWebhookNode(BaseNode):
         category="App Connectors",
         icon="webhook",
         color="#2563eb",
+        description="Send an HTTP response body back to the webhook that triggered the run.",
         inputs=["main"],
         outputs=["main"],
         properties=[
@@ -43,6 +44,7 @@ class EmailReadNode(BaseNode):
         category="App Connectors",
         icon="mail",
         color="#2563eb",
+        description="Fetch messages from an IMAP inbox and emit them as workflow items.",
         inputs=["main"],
         outputs=["main"],
         properties=[

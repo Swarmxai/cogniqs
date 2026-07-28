@@ -40,8 +40,17 @@ def upsert_documents(
 ) -> int:
     collection = get_or_create_collection(collection_name)
     if ids is None:
-        ids = [f"doc_{i}" for i in range(len(documents))]
-    collection.upsert(documents=documents, embeddings=embeddings, metadatas=metadatas or [{}] * len(documents), ids=ids)
+        # Content-hash ids so re-ingests are stable and don't collide across runs
+        ids = [f"doc_{hashlib.md5(d.encode()).hexdigest()[:12]}" for d in documents]
+    # Chroma rejects empty metadata dicts — always include at least one key
+    if metadatas is None:
+        metadatas = [{"source": "cogniqs", "index": i} for i in range(len(documents))]
+    else:
+        metadatas = [
+            (m if m else {"source": "cogniqs", "index": i})
+            for i, m in enumerate(metadatas)
+        ]
+    collection.upsert(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
     return len(documents)
 
 

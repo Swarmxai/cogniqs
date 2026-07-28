@@ -28,6 +28,7 @@ class InformationExtractorNode(BaseNode):
         category="NLP",
         icon="scissors",
         color="#f97316",
+        description="Use a chat model to extract structured fields from free-form text.",
         inputs=["main", "ai_languageModel"],
         outputs=["main"],
         properties=[
@@ -56,6 +57,7 @@ class TextClassifierNode(BaseNode):
         category="NLP",
         icon="filter",
         color="#f97316",
+        description="Classify text into one of the provided labels using a chat model.",
         inputs=["main", "ai_languageModel"],
         outputs=["main"],
         properties=[
@@ -95,6 +97,7 @@ class SentimentAnalysisNode(BaseNode):
         category="NLP",
         icon="activity",
         color="#f97316",
+        description="Classify text sentiment as positive, negative, or neutral via an LLM.",
         inputs=["main", "ai_languageModel"],
         outputs=["main"],
         properties=[

@@ -23,6 +23,7 @@ class DocumentIngestNode(BaseNode):
         category="RAG",
         icon="file-text",
         color="#059669",
+        description="Chunk document text, embed it, and upsert vectors into a named collection.",
         inputs=["main"],
         outputs=["main"],
         properties=[

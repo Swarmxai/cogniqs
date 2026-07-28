@@ -18,6 +18,7 @@ import {
   applyNodeBrand,
   getCategoryBrand,
 } from './nodeBranding'
+import { adaptNode } from './nodeAdapter'
 
 const HANDLE_MODE_MAP = {
   ai_languageModel: 'ai_model',
@@ -74,7 +75,7 @@ export function NodeSelectorPanel({ open, mode, nodeDescriptions, onSelect, onCl
   const [showPopular, setShowPopular] = useState(false)
 
   const descs = useMemo(
-    () => (nodeDescriptions || []).map((d) => applyNodeBrand(d)),
+    () => (nodeDescriptions || []).map((d) => adaptNode(applyNodeBrand(d))),
     [nodeDescriptions],
   )
 

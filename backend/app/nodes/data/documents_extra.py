@@ -41,6 +41,7 @@ class TextSplitterNode(BaseNode):
         category="Data Shaping",
         icon="scissors",
         color="#f59e0b",
+        description="Split long text into overlapping chunks for embeddings and RAG.",
         inputs=["main"],
         outputs=["main"],
         properties=[
@@ -73,6 +74,7 @@ class DocumentLoaderNode(BaseNode):
         category="Data Shaping",
         icon="file-text",
         color="#f59e0b",
+        description="Load text or file content into the workflow payload for downstream steps.",
         inputs=["main"],
         outputs=["main"],
         properties=[

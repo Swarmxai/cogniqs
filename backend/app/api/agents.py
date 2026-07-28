@@ -15,8 +15,10 @@ from app.core.deps import CurrentUser
 from app.core.errors import NotFoundError
 from app.database import get_db
 from app.models.agent import Agent
-from app.services.llm_service import LLMService
+from app.models.credential import Credential
 from app.services import session_store
+from app.services.credential_resolver import model_config_for_agent, validate_credential_for_provider
+from app.services.llm_service import LLMService
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -53,6 +55,7 @@ async def list_agents(user: CurrentUser, db: AsyncSession = Depends(get_db)) -> 
 
 @router.post("")
 async def create_agent(body: AgentBody, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
+    await _validate_agent_credential(db, body.credential_id, body.provider, user.id)
     agent = Agent(
         name=body.name, description=body.description, system_prompt=body.system_prompt,
         provider=body.provider, model=body.model, credential_id=body.credential_id,
@@ -71,6 +74,37 @@ async def _get_owned(db: AsyncSession, agent_id: int, owner_id: int) -> Agent:
     return agent
 
 
+async def _validate_agent_credential(
+    db: AsyncSession, credential_id: int | None, provider: str, owner_id: int
+) -> None:
+    if credential_id is None:
+        return
+    result = await db.execute(
+        select(Credential).where(Credential.id == credential_id, Credential.owner_id == owner_id)
+    )
+    cred = result.scalar_one_or_none()
+    if not cred:
+        raise NotFoundError("Credential not found")
+    validate_credential_for_provider(provider, cred.type)
+
+
+async def _chat_llm(
+    db: AsyncSession,
+    agent: Agent,
+    messages: list[dict[str, str]],
+    *,
+    owner_id: int | None = None,
+) -> dict:
+    model_cfg = await model_config_for_agent(
+        db,
+        provider=agent.provider,
+        model=agent.model,
+        credential_id=agent.credential_id,
+        owner_id=owner_id if owner_id is not None else agent.owner_id,
+    )
+    return await LLMService.chat(model_cfg, messages)
+
+
 @router.get("/{agent_id}")
 async def get_agent(agent_id: int, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
     agent = await _get_owned(db, agent_id, user.id)
@@ -80,6 +114,7 @@ async def get_agent(agent_id: int, user: CurrentUser, db: AsyncSession = Depends
 @router.put("/{agent_id}")
 async def update_agent(agent_id: int, body: AgentBody, user: CurrentUser, db: AsyncSession = Depends(get_db)) -> dict:
     agent = await _get_owned(db, agent_id, user.id)
+    await _validate_agent_credential(db, body.credential_id, body.provider, user.id)
     agent.name = body.name
     agent.description = body.description
     agent.system_prompt = body.system_prompt
@@ -127,7 +162,7 @@ async def public_agent_chat(agent_id: int, body: PublicAgentChatBody, db: AsyncS
     messages = [{"role": "system", "content": agent.system_prompt}]
     messages.extend(history)
     messages.append({"role": "user", "content": body.message})
-    result_llm = await LLMService.chat({"provider": agent.provider, "model": agent.model}, messages)
+    result_llm = await _chat_llm(db, agent, messages)
     reply = result_llm.get("content", "")
     await session_store.add_message(session_key, "user", body.message)
     await session_store.add_message(session_key, "assistant", reply)
@@ -144,9 +179,7 @@ async def chat_with_agent(agent_id: int, body: AgentChatBody, user: CurrentUser,
     messages.extend(history)
     messages.append({"role": "user", "content": body.message})
 
-    result = await LLMService.chat(
-        {"provider": agent.provider, "model": agent.model}, messages
-    )
+    result = await _chat_llm(db, agent, messages, owner_id=agent.owner_id)
     reply = result.get("content", "")
     await session_store.add_message(session_key, "user", body.message)
     await session_store.add_message(session_key, "assistant", reply)

@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, Workflow, History, Moon, Sun, LogOut, Sparkles,
   LayoutTemplate, Key, Database, Cpu, FolderKanban, Bot, Boxes,
   TrendingUp, Layout as LayoutIcon, Menu, Table2, Wand2, Settings as SettingsIcon,
+  Search,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from './NotificationBell'
+import CommandPalette from './CommandPalette'
 import { useTheme } from '../context/ThemeContext'
 
 const navGroups = [
@@ -80,6 +82,18 @@ export default function Layout() {
   const { user, logout } = useAuth()
   const { dark, toggle } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((o) => !o)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   const sidebar = (onClick) => (
     <>
@@ -167,6 +181,24 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="cq-search-trigger hidden sm:inline-flex"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Open command palette"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>Search…</span>
+              <kbd className="cq-cmdk-kbd">⌘K</kbd>
+            </button>
+            <button
+              type="button"
+              className="cq-btn cq-btn-ghost !px-2.5 !py-2 sm:hidden"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Open command palette"
+            >
+              <Search className="w-4 h-4" />
+            </button>
             <NotificationBell />
             <button
               onClick={toggle}
@@ -178,6 +210,8 @@ export default function Layout() {
             </button>
           </div>
         </header>
+
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
 
         <main className="flex-1">
           <Outlet />

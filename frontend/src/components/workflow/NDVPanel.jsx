@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { NodeIcon } from './icons/NodeIcons'
 import { api } from '../../api/client'
-import { isPropertyVisible, credentialTypes } from './ndvUtils'
+import { isPropertyVisible, credentialTypes, credentialMatchesNode } from './ndvUtils'
+import OCRResultViewer from './OCRResultViewer'
 
 function JsonBlock({ data, empty }) {
   if (data == null || (typeof data === 'object' && !Object.keys(data).length)) {
@@ -17,7 +18,8 @@ function JsonBlock({ data, empty }) {
 
 function PropertyField({ prop, value, onChange }) {
   const type = prop.type
-  const rows = prop.typeOptions?.rows || (type === 'code' || type === 'json' ? 6 : 3)
+  // Strings stay single-line unless the node explicitly requests rows
+  const rows = prop.typeOptions?.rows || (type === 'code' || type === 'json' ? 6 : 1)
 
   if (type === 'boolean') {
     return (
@@ -97,7 +99,7 @@ function PropertyField({ prop, value, onChange }) {
 function CredentialSelector({ nodeMeta, value, credentials, onChange, onAutofill }) {
   const allowed = credentialTypes(nodeMeta)
   const filtered = allowed.length
-    ? credentials.filter((c) => allowed.includes(c.type))
+    ? credentials.filter((c) => credentialMatchesNode(c.type, allowed))
     : credentials
 
   return (
@@ -282,7 +284,11 @@ export default function NDVPanel({ node, nodeMeta, nodeResult, onChange, onClose
         {tab === 'output' && (
           <div className="ndv-io">
             {nodeResult?.error && <div className="ndv-io-error">{nodeResult.error}</div>}
-            <JsonBlock data={outputData} empty="No output yet. Execute the workflow or test this step." />
+            {outputData?._display?.type === 'ocr_bbox_viewer' ? (
+              <OCRResultViewer output={outputData} />
+            ) : (
+              <JsonBlock data={outputData} empty="No output yet. Execute the workflow or test this step." />
+            )}
           </div>
         )}
       </div>

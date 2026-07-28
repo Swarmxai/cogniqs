@@ -17,6 +17,7 @@ class ConversationMemoryNode(BaseNode):
         category="Memory",
         icon="message-square",
         color="#ec4899",
+        description="Persist multi-turn conversation history for agents and chat chains.",
         inputs=[], outputs=["ai_memory"],
         is_ai_subnode=True, ai_output_type="ai_memory",
         properties=[
@@ -53,6 +54,7 @@ class MemoryTokenBufferNode(BaseNode):
         category="Memory",
         icon="database",
         color="#ec4899",
+        description="Conversation memory capped by an approximate token budget.",
         inputs=[], outputs=["ai_memory"],
         is_ai_subnode=True, ai_output_type="ai_memory",
         properties=[

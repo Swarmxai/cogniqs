@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.core.errors import ApplicationError
+from app.core.rate_limit import RateLimitMiddleware
 from app.database import close_db, init_db
 from app.api.auth import router as auth_router
 from app.api.workflows import router as workflows_router
@@ -80,6 +81,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.RATE_LIMIT_PER_MINUTE)
 
 
 @app.middleware("http")

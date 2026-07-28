@@ -167,7 +167,10 @@ class ModelEvaluationNode(BaseNode):
 
     async def execute(self, node_id: str, parameters: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         df = resolve_dataframe(parameters, context)
-        model_id = int(parameters.get("model_id"))
+        raw_id = parameters.get("model_id")
+        if raw_id in (None, ""):
+            raise ValueError("Model ID is required — connect a Model Training node or set a trained model ID")
+        model_id = int(raw_id)
         async with async_session_factory() as db:
             result = await db.execute(select(TrainedModel).where(TrainedModel.id == model_id))
             model = result.scalar_one_or_none()

@@ -16,6 +16,7 @@ class StructuredOutputParserNode(BaseNode):
         category="Output Parsers",
         icon="code",
         color="#0ea5e9",
+        description="Parse LLM output into structured JSON matching a schema.",
         inputs=[], outputs=["ai_outputParser"],
         is_ai_subnode=True, ai_output_type="ai_outputParser",
         properties=[
@@ -42,6 +43,7 @@ class ListOutputParserNode(BaseNode):
         category="Output Parsers",
         icon="layers",
         color="#0ea5e9",
+        description="Parse LLM output into a clean list of items.",
         inputs=[], outputs=["ai_outputParser"],
         is_ai_subnode=True, ai_output_type="ai_outputParser",
         properties=[

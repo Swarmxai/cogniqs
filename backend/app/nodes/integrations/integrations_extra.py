@@ -23,6 +23,7 @@ class SlackSendMessageNode(BaseNode):
         name="slack_send_message",
         category="Integrations",
         icon="message-circle",
+        description="Send a message to a Slack channel via an incoming webhook URL",
         color="#4a154b",
         inputs=["main"],
         outputs=["main"],
@@ -47,6 +48,7 @@ class TelegramSendMessageNode(BaseNode):
         name="telegram_send_message",
         category="Integrations",
         icon="message-circle",
+        description="Send a message to a Telegram chat using the Telegram Bot API",
         color="#229ed9",
         inputs=["main"],
         outputs=["main"],
@@ -75,6 +77,7 @@ class EmailSendNode(BaseNode):
         name="email_send",
         category="Integrations",
         icon="message-circle",
+        description="Send an email through an SMTP server with configurable subject, body, and recipients",
         color="#ea4335",
         inputs=["main"],
         outputs=["main"],
@@ -118,6 +121,7 @@ class DatabaseQueryNode(BaseNode):
         name="database_query",
         category="Integrations",
         icon="database",
+        description="Run a SQL query against a saved or ad-hoc database connection and return the resulting rows",
         color="#336791",
         inputs=["main"],
         outputs=["main"],
@@ -159,6 +163,7 @@ class ExecuteWorkflowNode(BaseNode):
         name="execute_workflow",
         category="Integrations",
         icon="box",
+        description="Run another workflow as a sub-workflow with custom input and return its final output",
         color="#6366f1",
         inputs=["main"],
         outputs=["main"],
@@ -175,7 +180,10 @@ class ExecuteWorkflowNode(BaseNode):
         from app.engine.runtime_context import RuntimeContext
         from app.executions.workflow_executor import WorkflowExecutor
 
-        wf_id = int(parameters.get("workflow_id"))
+        raw_id = parameters.get("workflow_id")
+        if raw_id in (None, ""):
+            raise ValueError("Workflow ID is required — set the ID of the workflow to execute")
+        wf_id = int(raw_id)
         inp = parameters.get("input", {})
         if isinstance(inp, str) and inp.strip():
             inp = json.loads(inp)

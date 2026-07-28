@@ -20,11 +20,19 @@ def encrypt_value(value: str, secret: str) -> str:
         return json.dumps({"v": 1, "d": encoded})
 
 
+def _decrypt_legacy(token: str) -> str:
+    import json
+
+    payload = json.loads(token)
+    return base64.b64decode(payload["d"]).decode()
+
+
 def decrypt_value(token: str, secret: str) -> str:
+    if token.startswith("{"):
+        return _decrypt_legacy(token)
     try:
         from cryptography.fernet import Fernet
+
         return Fernet(_derive_key(secret)).decrypt(token.encode()).decode()
     except ImportError:
-        import json
-        payload = json.loads(token)
-        return base64.b64decode(payload["d"]).decode()
+        return _decrypt_legacy(token)

@@ -13,6 +13,7 @@ class BasicLLMChainNode(BaseNode):
         category="AI Chains",
         icon="link",
         color="#6366f1",
+        description="Run a single LLM prompt against a connected chat model and return the completion.",
         inputs=["main", "ai_languageModel"],
         outputs=["main"],
         properties=[

@@ -160,11 +160,15 @@ class MultimodalIngestNode(BaseNode):
     )
 
     async def execute(self, node_id: str, parameters: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+        collection = (parameters.get("collectionName") or "").strip()
+        if not collection:
+            raise ValueError("Collection name is required")
         payload = context.get("json") or {}
         text = str(payload.get(parameters.get("textField", "text"), ""))
         image = payload.get(parameters.get("imageUrlField", "image_url"))
-        collection = parameters.get("collectionName")
         doc = f"[IMAGE:{image}]\n{text}" if image else text
+        if not doc.strip():
+            raise ValueError("No text (or image URL) found to ingest")
         embed_cfg = {"provider": "openai", "model": "text-embedding-3-small"}
         emb = (await LLMService.embed([doc], embed_cfg))[0]
         from app.services.vector_store import upsert_documents

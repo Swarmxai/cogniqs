@@ -1,5 +1,7 @@
 /** NDV field visibility — mirrors mindscrybe displayOptions + typeOptions rules. */
 
+import { resolveCredType } from '../../lib/credentialTypes'
+
 const SECRET_FIELD_NAMES = new Set([
   'apiKey', 'api_key', 'password', 'secret', 'token',
 ])
@@ -32,4 +34,10 @@ export function credentialTypes(nodeMeta) {
     if (slot.type) types.add(slot.type)
   }
   return [...types]
+}
+
+/** Match vault credential type against node slot types (handles Mindscrybe aliases). */
+export function credentialMatchesNode(credType, allowedTypes) {
+  const resolved = resolveCredType(credType)
+  return allowedTypes.some((t) => resolveCredType(t) === resolved || t === credType)
 }

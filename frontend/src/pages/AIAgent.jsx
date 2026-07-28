@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import {
   Bot, Plus, Trash2, Send, Settings, Mic, MessageSquare,
-  AudioLines, ArrowLeft, Volume2, Pencil, Globe, Copy,
+  AudioLines, ArrowLeft, Volume2, Pencil, Globe, Copy, Key, ExternalLink,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { credentialsForAgentProvider, getCredTypeDef } from '../lib/credentialTypes'
 
-const PROVIDERS = ['openai', 'anthropic', 'gemini', 'groq', 'mistral', 'deepseek', 'ollama']
+const PROVIDERS = ['openai', 'anthropic', 'gemini', 'groq', 'mistral', 'deepseek', 'ollama', 'azure']
 const TTS_PROVIDERS = ['elevenlabs', 'openai', 'cartesia', 'playht']
 const STT_PROVIDERS = ['deepgram', 'whisper', 'assemblyai']
 const LANGUAGES = [
@@ -33,6 +35,13 @@ const emptyForm = () => ({
   greeting: 'Hi! How can I help you today?',
   credential_id: null,
 })
+
+function credentialLabel(creds, id) {
+  if (!id) return 'Platform default (.env)'
+  const c = creds.find((x) => x.id === id)
+  const td = c ? getCredTypeDef(c.type) : null
+  return c ? `${c.name} (${td?.label || c.type})` : `Credential #${id}`
+}
 
 export default function AIAgent() {
   const [agents, setAgents] = useState([])
@@ -147,6 +156,17 @@ export default function AIAgent() {
 
   const isVoice = form.agent_type === 'voice'
   const agentType = (a) => a?.config?.agent_type || 'text'
+  const formCreds = useMemo(() => credentialsForAgentProvider(form.provider, credentials), [form.provider, credentials])
+  const editCreds = useMemo(
+    () => credentialsForAgentProvider(editing?.provider || 'openai', credentials),
+    [editing?.provider, credentials],
+  )
+
+  const onProviderChange = (provider, currentCredId) => {
+    const compatible = credentialsForAgentProvider(provider, credentials)
+    const stillValid = compatible.some((c) => c.id === currentCredId)
+    return { provider, credential_id: stillValid ? currentCredId : null }
+  }
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 lg:px-6 py-8 animate-fade-up">
@@ -213,20 +233,35 @@ export default function AIAgent() {
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="text-xs text-faint">
               LLM provider
-              <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} className="cq-input mt-1">
+              <select
+                value={form.provider}
+                onChange={(e) => setForm((f) => ({ ...f, ...onProviderChange(e.target.value, f.credential_id) }))}
+                className="cq-input mt-1"
+              >
                 {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
             <label className="text-xs text-faint">
               Model
-              <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Model" className="cq-input mt-1" />
+              <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Model or Azure deployment" className="cq-input mt-1" />
             </label>
             <label className="text-xs text-faint sm:col-span-2">
               API credential (optional)
               <select value={form.credential_id ?? ''} onChange={(e) => setForm({ ...form, credential_id: e.target.value ? Number(e.target.value) : null })} className="cq-input mt-1">
-                <option value="">Platform default</option>
-                {credentials.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.type})</option>)}
+                <option value="">Platform default — server .env keys</option>
+                {formCreds.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.type})</option>)}
               </select>
+              {formCreds.length === 0 && (
+                <span className="text-xs text-faint mt-1 block">
+                  No vault keys for {form.provider}.{' '}
+                  <Link to="/credentials" className="text-[var(--primary)] inline-flex items-center gap-0.5">
+                    Add credential <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </span>
+              )}
+              {form.provider === 'azure' && (
+                <span className="text-xs text-faint mt-1 block">Use Azure OpenAI credential; model field = deployment name.</span>
+              )}
             </label>
           </div>
 
@@ -281,8 +316,9 @@ export default function AIAgent() {
             const type = agentType(a)
             const voice = type === 'voice'
             return (
-              <button key={a.id} onClick={() => selectAgent(a)}
-                className={`w-full text-left p-4 rounded-2xl border transition-all ${active?.id === a.id ? 'border-[var(--primary)] neon-ring' : 'border-token cq-card-hover'} cq-card`}>
+              <div key={a.id} role="button" tabIndex={0} onClick={() => selectAgent(a)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectAgent(a) } }}
+                className={`w-full text-left p-4 rounded-2xl border transition-all cursor-pointer ${active?.id === a.id ? 'border-[var(--primary)] neon-ring' : 'border-token cq-card-hover'} cq-card`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
@@ -291,7 +327,11 @@ export default function AIAgent() {
                     </div>
                     <span className="font-medium truncate">{a.name}</span>
                   </div>
-                  <Trash2 onClick={(e) => { e.stopPropagation(); remove(a.id) }} className="w-4 h-4 text-faint hover:text-red-500 shrink-0" />
+                  <button type="button" aria-label="Delete agent" title="Delete agent"
+                    onClick={(e) => { e.stopPropagation(); remove(a.id) }}
+                    className="p-1 -m-1 rounded-md shrink-0 text-faint hover:text-red-500 hover:bg-red-500/10 transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className="cq-chip">{voice ? <><AudioLines className="w-3 h-3" /> Voice</> : <><MessageSquare className="w-3 h-3" /> Text</>}</span>
@@ -302,7 +342,7 @@ export default function AIAgent() {
                   <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(a) }} className="text-xs text-faint hover:text-[var(--ink)] flex items-center gap-1"><Pencil className="w-3 h-3" /> Edit</button>
                   <button type="button" onClick={(e) => { e.stopPropagation(); publish(a.id) }} className="text-xs text-faint hover:text-[var(--ink)] flex items-center gap-1"><Globe className="w-3 h-3" /> Publish</button>
                 </div>
-              </button>
+              </div>
             )
           })}
           {agents.length === 0 && <p className="text-sm text-muted p-4">No agents yet</p>}
@@ -315,14 +355,18 @@ export default function AIAgent() {
               <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="cq-input" required />
               <textarea value={editing.system_prompt} onChange={(e) => setEditing({ ...editing, system_prompt: e.target.value })} rows={4} className="cq-input" />
               <div className="grid grid-cols-2 gap-2">
-                <select value={editing.provider} onChange={(e) => setEditing({ ...editing, provider: e.target.value })} className="cq-input">
+                <select
+                  value={editing.provider}
+                  onChange={(e) => setEditing((ed) => ({ ...ed, ...onProviderChange(e.target.value, ed.credential_id) }))}
+                  className="cq-input"
+                >
                   {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
-                <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="cq-input" />
+                <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="cq-input" placeholder="Model" />
               </div>
               <select value={editing.credential_id ?? ''} onChange={(e) => setEditing({ ...editing, credential_id: e.target.value ? Number(e.target.value) : null })} className="cq-input">
-                <option value="">Platform default credential</option>
-                {credentials.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="">Platform default — server .env keys</option>
+                {editCreds.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.type})</option>)}
               </select>
               <div className="flex gap-2">
                 <button type="submit" className="cq-btn cq-btn-primary">Save</button>
@@ -337,6 +381,9 @@ export default function AIAgent() {
                   : <Settings className="w-4 h-4 text-faint" />}
                 <span className="font-medium">{active.name}</span>
                 <span className="text-xs text-faint">{active.provider} · {active.model}</span>
+                <span className="text-xs cq-chip flex items-center gap-1">
+                  <Key className="w-3 h-3" /> {credentialLabel(credentials, active.credential_id)}
+                </span>
                 <div className="ml-auto flex gap-1">
                   <button type="button" onClick={() => openEdit(active)} className="cq-btn cq-btn-ghost !px-2 !py-1 !text-xs"><Pencil className="w-3 h-3" /> Edit</button>
                   <button type="button" data-testid="agent-publish" onClick={() => publish(active.id)} className="cq-btn cq-btn-ghost !px-2 !py-1 !text-xs"><Globe className="w-3 h-3" /> {active.published ? 'Republish' : 'Publish'}</button>

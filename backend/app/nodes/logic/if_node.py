@@ -12,6 +12,7 @@ class IfNode(BaseNode):
         category="Logic",
         icon="git-branch",
         color="#64748b",
+        description="Branch the flow into true and false paths based on a condition.",
         inputs=["main"],
         outputs=["main-true", "main-false"],
         properties=[

@@ -1,0 +1,195 @@
+/* ───────────────── OCR result viewer (Cogniqs tokens) ───────────────── */
+
+.ocr-result-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ocr-result-viewer-tabs {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.ocr-result-viewer-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.ocr-result-viewer-tab:hover { color: var(--ink); }
+
+.ocr-result-viewer-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.ocr-result-viewer-meta {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-faint);
+  padding-right: 4px;
+  white-space: nowrap;
+}
+
+.ocr-result-text {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 480px;
+  overflow: auto;
+}
+
+/* ───────────────── Bounding-box viewer ───────────────── */
+
+.ocr-bbox-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ocr-bbox-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.ocr-bbox-toolbar-left,
+.ocr-bbox-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ocr-bbox-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ocr-bbox-btn:hover {
+  color: var(--ink);
+  background: var(--surface-3);
+}
+
+.ocr-bbox-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.ocr-bbox-zoom-label {
+  min-width: 40px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.ocr-bbox-body {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  min-height: 240px;
+  max-height: 560px;
+  overflow: hidden;
+}
+
+.ocr-bbox-image-panel {
+  padding: 12px;
+  overflow: auto;
+  max-height: 560px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.ocr-bbox-image-wrapper {
+  display: inline-block;
+  transform-origin: top left;
+  transition: transform 0.2s ease;
+}
+
+.ocr-bbox-image {
+  display: block;
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+}
+
+/* ───────────────── Fullscreen ───────────────── */
+
+.ocr-bbox-fullscreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.ocr-bbox-fullscreen-content {
+  position: relative;
+  max-width: 95vw;
+  max-height: 95vh;
+}
+
+.ocr-bbox-fullscreen-content img {
+  max-width: 95vw;
+  max-height: 90vh;
+  border-radius: 10px;
+}
+
+.ocr-bbox-fullscreen-close {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-3);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: var(--shadow-pop);
+}

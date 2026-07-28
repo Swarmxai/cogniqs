@@ -13,6 +13,7 @@ class MemoryBufferNode(BaseNode):
         category="Memory",
         icon="database",
         color="#ec4899",
+        description="Keep a rolling buffer of recent chat turns for agent context.",
         inputs=[],
         outputs=["ai_memory"],
         is_ai_subnode=True,

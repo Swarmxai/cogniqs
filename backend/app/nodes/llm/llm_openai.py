@@ -3,7 +3,7 @@ from typing import Any
 from app.config import settings
 from app.engine.node_base import BaseNode, NodeDescription, NodeProperty, NodePropertyOption
 from app.engine.node_registry import register_node
-from app.nodes.llm.llm_helpers import api_key_prop, pick, provider_credentials, resolve_api_key, temperature_max_props
+from app.nodes.llm.llm_helpers import api_key_prop, cred_data, pick, provider_credentials, resolve_api_key, temperature_max_props
 
 
 @register_node
@@ -50,8 +50,9 @@ class OpenAINode(BaseNode):
     async def execute(self, node_id: str, parameters: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         return {"model": {
             "provider": "openai",
-            "baseUrl": pick(parameters.get("baseUrl"), "https://api.openai.com/v1").rstrip("/"),
+            "baseUrl": pick(parameters.get("baseUrl"), cred_data(context).get("baseUrl"), "https://api.openai.com/v1").rstrip("/"),
             "apiKey": resolve_api_key(parameters, context, settings.OPENAI_API_KEY),
+            "organization": pick(parameters.get("organization"), cred_data(context).get("organization"), default=""),
             "apiVersion": parameters.get("apiVersion") or "",
             "model": parameters.get("model", "gpt-4o-mini"),
             "temperature": float(parameters.get("temperature", 0.7)),

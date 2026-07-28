@@ -14,6 +14,7 @@ class HTTPToolNode(BaseNode):
         category="Tools",
         icon="globe",
         color="#f59e0b",
+        description="Expose an HTTP request as a callable tool for AI agents.",
         inputs=[],
         outputs=["ai_tool"],
         is_ai_subnode=True,

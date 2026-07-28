@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bot, Workflow, Zap, ArrowRight, Plus, TrendingUp, Sparkles, Database, Cpu, Boxes, DollarSign } from 'lucide-react'
 import { api } from '../api/client'
@@ -10,11 +10,44 @@ const STAT_STYLES = {
   emerald: { color: '#10b981', glow: 'rgba(16,185,129,0.35)' },
 }
 
+/** Animate a number from 0 → value on mount / value change. */
+function CountUp({ value, suffix = '', duration = 700 }) {
+  const [display, setDisplay] = useState(0)
+  const rafRef = useRef(null)
+
+  useEffect(() => {
+    const target = Number(value) || 0
+    if (target === 0) { setDisplay(0); return undefined }
+    const start = performance.now()
+    const tick = (now) => {
+      const t = Math.min((now - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setDisplay(Math.round(target * eased))
+      if (t < 1) rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [value, duration])
+
+  return <>{display.toLocaleString()}{suffix}</>
+}
+
+function StatSkeleton() {
+  return (
+    <div className="cq-card p-5">
+      <div className="cq-skeleton w-11 h-11 mb-4" style={{ borderRadius: '0.75rem' }} />
+      <div className="cq-skeleton h-8 w-16 mb-2" />
+      <div className="cq-skeleton h-4 w-24" />
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [workflows, setWorkflows] = useState([])
   const [executions, setExecutions] = useState([])
   const [nodeCount, setNodeCount] = useState(0)
   const [usage, setUsage] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([api.getWorkflows(), api.getExecutions(), api.getNodes(), api.usageSummary(30)])
@@ -25,6 +58,7 @@ export default function Dashboard() {
         setUsage(u)
       })
       .catch(console.error)
+      .finally(() => setLoading(false))
   }, [])
 
   const successRate = executions.length
@@ -93,7 +127,7 @@ export default function Dashboard() {
               <Zap className="w-5 h-5" style={{ color: '#06b6d4' }} />
             </div>
             <div>
-              <p className="text-2xl font-bold">{usage.total_calls ?? 0}</p>
+              <p className="text-2xl font-bold"><CountUp value={usage.total_calls ?? 0} /></p>
               <p className="text-sm text-muted">LLM calls (30d)</p>
             </div>
           </div>
@@ -102,7 +136,7 @@ export default function Dashboard() {
               <TrendingUp className="w-5 h-5" style={{ color: '#8b5cf6' }} />
             </div>
             <div>
-              <p className="text-2xl font-bold">{(usage.total_tokens ?? 0).toLocaleString()}</p>
+              <p className="text-2xl font-bold"><CountUp value={usage.total_tokens ?? 0} /></p>
               <p className="text-sm text-muted">Tokens used (30d)</p>
             </div>
           </div>
@@ -120,23 +154,29 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(({ label, value, icon: Icon, tone }) => {
-          const s = STAT_STYLES[tone]
-          return (
-            <div key={label} className="cq-card cq-card-hover p-5 relative overflow-hidden">
-              <div className="absolute right-0 top-0 w-20 h-20 rounded-full blur-2xl opacity-30"
-                style={{ background: s.color }} />
-              <div className="relative">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                  style={{ background: `color-mix(in srgb, ${s.color} 14%, transparent)`, boxShadow: `0 0 0 1px color-mix(in srgb, ${s.color} 30%, transparent)` }}>
-                  <Icon className="w-5 h-5" style={{ color: s.color }} />
+        {loading
+          ? [0, 1, 2, 3].map((i) => <StatSkeleton key={i} />)
+          : stats.map(({ label, value, icon: Icon, tone }) => {
+            const s = STAT_STYLES[tone]
+            const isPercent = typeof value === 'string' && value.endsWith('%')
+            const numeric = isPercent ? parseInt(value, 10) : value
+            return (
+              <div key={label} className="cq-card cq-card-hover p-5 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-20 h-20 rounded-full blur-2xl opacity-30"
+                  style={{ background: s.color }} />
+                <div className="relative">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+                    style={{ background: `color-mix(in srgb, ${s.color} 14%, transparent)`, boxShadow: `0 0 0 1px color-mix(in srgb, ${s.color} 30%, transparent)` }}>
+                    <Icon className="w-5 h-5" style={{ color: s.color }} />
+                  </div>
+                  <p className="text-3xl font-bold tracking-tight">
+                    <CountUp value={numeric} suffix={isPercent ? '%' : ''} />
+                  </p>
+                  <p className="text-sm text-muted mt-0.5">{label}</p>
                 </div>
-                <p className="text-3xl font-bold tracking-tight">{value}</p>
-                <p className="text-sm text-muted mt-0.5">{label}</p>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

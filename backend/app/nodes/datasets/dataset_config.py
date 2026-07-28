@@ -38,7 +38,10 @@ class DatasetConfigNode(BaseNode):
     )
 
     async def execute(self, node_id: str, parameters: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
-        dataset_id = int(parameters.get("dataset_id"))
+        raw_id = parameters.get("dataset_id")
+        if raw_id in (None, ""):
+            raise ValueError("Dataset ID is required — pick a dataset uploaded on the Datasets page")
+        dataset_id = int(raw_id)
         target_column = parameters.get("target_column") or None
         async with async_session_factory() as db:
             result = await db.execute(select(Dataset).where(Dataset.id == dataset_id))

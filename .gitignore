@@ -29,3 +29,8 @@ backend/data/
 chroma_data/
 *.db
 !backend/cogniqs.db
+
+# Test / scratch artifacts
+frontend/test-results/
+frontend/playwright-report/
+backend/scratch_*.py

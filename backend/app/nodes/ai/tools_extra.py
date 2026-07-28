@@ -59,6 +59,7 @@ class ToolCalculatorNode(BaseNode):
         category="Tools",
         icon="calculator",
         color="#f59e0b",
+        description="Let agents evaluate arithmetic expressions safely.",
         inputs=[], outputs=["ai_tool"],
         is_ai_subnode=True, ai_output_type="ai_tool",
         properties=[
@@ -96,6 +97,7 @@ class ToolCodeNode(BaseNode):
         category="Tools",
         icon="code",
         color="#10b981",
+        description="Let agents run short sandboxed Python snippets as a tool.",
         inputs=[], outputs=["ai_tool"],
         is_ai_subnode=True, ai_output_type="ai_tool",
         properties=[
@@ -137,6 +139,7 @@ class ToolWikipediaNode(BaseNode):
         category="Tools",
         icon="book-open",
         color="#3b82f6",
+        description="Let agents look up Wikipedia summaries for a query.",
         inputs=[], outputs=["ai_tool"],
         is_ai_subnode=True, ai_output_type="ai_tool",
         properties=[

@@ -15,7 +15,7 @@ export default function Templates() {
     api.getTemplates().then(setTemplates).catch(console.error)
   }, [])
 
-  const useTemplate = async (id) => {
+  const applyTemplate = async (id) => {
     setLoading(id)
     try {
       const wf = await api.useTemplate(id)
@@ -75,7 +75,7 @@ export default function Templates() {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-faint">{tpl.nodes?.length || 0} nodes · {tpl.category}</span>
                 <button
-                  onClick={() => useTemplate(tpl.id)}
+                  onClick={() => applyTemplate(tpl.id)}
                   disabled={loading === tpl.id}
                   className="flex items-center gap-1 text-sm font-medium hover:underline disabled:opacity-50"
                   style={{ color: 'var(--primary)' }}

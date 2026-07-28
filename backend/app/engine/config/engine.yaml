@@ -312,6 +312,10 @@ nodes:
     import_path: app.nodes.ai.nlp_nodes.SentimentAnalysisNode
     config: {}
 
+  vision_ocr:
+    import_path: app.nodes.ai.vision_ocr.VisionOCRNode
+    config: {}
+
   tool_calculator:
     import_path: app.nodes.ai.tools_extra.ToolCalculatorNode
     config: {}

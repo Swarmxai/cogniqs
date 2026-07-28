@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Shield, Smartphone, CheckCircle, XCircle } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'

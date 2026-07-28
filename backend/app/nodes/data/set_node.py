@@ -13,6 +13,7 @@ class SetNode(BaseNode):
         category="Data",
         icon="edit",
         color="#0ea5e9",
+        description="Assign or merge JSON fields onto the current workflow payload.",
         inputs=["main"],
         outputs=["main"],
         properties=[

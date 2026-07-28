@@ -73,6 +73,10 @@ class Settings(BaseSettings):
     REDIS_URL: str = ""
     SESSION_TTL_SECONDS: int = 3600
 
+    # Global sliding-window rate limit (per IP). Generous because reverse
+    # proxies can collapse many users onto a single client IP.
+    RATE_LIMIT_PER_MINUTE: int = 600
+
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"

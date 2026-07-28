@@ -14,6 +14,7 @@ class HTTPRequestNode(BaseNode):
         category="Integrations",
         icon="globe",
         color="#f97316",
+        description="Call any HTTP/REST endpoint and pass the response downstream.",
         inputs=["main"],
         outputs=["main"],
         properties=[

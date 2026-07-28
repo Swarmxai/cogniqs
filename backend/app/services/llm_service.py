@@ -90,9 +90,13 @@ class LLMService:
         if tools:
             payload["tools"] = tools
         async with httpx.AsyncClient(timeout=120) as client:
+            headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+            org = cfg.get("organization")
+            if org:
+                headers["OpenAI-Organization"] = org
             resp = await client.post(
                 "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                headers=headers,
                 json=payload,
             )
             resp.raise_for_status()
@@ -305,10 +309,25 @@ class LLMService:
         )
 
     @staticmethod
+    def _demo_stub_embeddings(texts: list[str], dims: int = 32) -> list[list[float]]:
+        """Deterministic pseudo-embeddings for local/dev runs without API keys."""
+        out: list[list[float]] = []
+        for text in texts:
+            seed = sum(ord(c) for c in (text or "")) or 1
+            vec = [((seed * (i + 1)) % 997) / 997.0 for i in range(dims)]
+            # L2-normalize
+            norm = sum(v * v for v in vec) ** 0.5 or 1.0
+            out.append([v / norm for v in vec])
+        return out
+
+    @staticmethod
     async def embed(texts: list[str], model_config: dict[str, Any]) -> list[list[float]]:
         provider = model_config.get("provider", "openai")
         if provider == "openai":
             api_key = model_config.get("apiKey") or settings.OPENAI_API_KEY
+            if not api_key:
+                logger.info("Embedding demo stub — no OpenAI API key")
+                return LLMService._demo_stub_embeddings(texts)
             model = model_config.get("model", "text-embedding-3-small")
             async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.post(
@@ -319,4 +338,7 @@ class LLMService:
                 resp.raise_for_status()
                 data = resp.json()
             return [item["embedding"] for item in data["data"]]
+        if provider in ("ollama", "azure"):
+            # Defer to provider-specific nodes; keep a clear error here
+            raise ValueError(f"Use the dedicated embeddings node for provider '{provider}'")
         raise ValueError(f"Embeddings not supported for provider: {provider}")
